@@ -6,6 +6,8 @@ let package = Package(
     platforms: [.macOS(.v26)],
     targets: [
         .target(name: "CleanerCore"),
+        .target(name: "DiskScanner", dependencies: ["CleanerCore"]),
+        .testTarget(name: "DiskScannerTests", dependencies: ["DiskScanner", "TestSupport"]),
         .target(name: "TestSupport"),
         .testTarget(name: "CleanerCoreTests", dependencies: ["CleanerCore", "TestSupport"]),
     ]
