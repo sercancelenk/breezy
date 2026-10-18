@@ -13,6 +13,7 @@ CleanerCore, DiskScanner, Rules, Safety, AI, Preferences, Cleaning, AppModel, Cl
 - Derle: `swift build -q`
 - Test: `swift test -q`
 - Tek test: `swift test -q --filter <TestAdı>`
+- Paketle: `scripts/make-app.sh` → `build/Cleaner.app` (ad-hoc imza; her yeniden derlemede Tam Disk Erişimi tekrar istenebilir)
 
 ## Kurallar
 - Silme yalnızca `Safety` geçidinden geçer. Kalıcı silme yok, `NSWorkspace.recycle` kullan.
