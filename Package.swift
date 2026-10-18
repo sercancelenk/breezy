@@ -10,6 +10,8 @@ let package = Package(
         .testTarget(name: "DiskScannerTests", dependencies: ["DiskScanner", "TestSupport"]),
         .target(name: "Safety", dependencies: ["CleanerCore"]),
         .testTarget(name: "SafetyTests", dependencies: ["Safety", "TestSupport"]),
+        .target(name: "Rules", dependencies: ["CleanerCore", "DiskScanner", "Safety"]),
+        .testTarget(name: "RulesTests", dependencies: ["Rules", "TestSupport"]),
         .target(name: "TestSupport"),
         .testTarget(name: "CleanerCoreTests", dependencies: ["CleanerCore", "TestSupport"]),
     ]
