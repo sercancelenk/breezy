@@ -22,6 +22,7 @@
 - Testler Swift Testing ile; çalıştırma `swift test -q [--filter <Ad>]`, derleme `swift build -q`.
 - Her commit mesajı şu satırla biter: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>`
 - v1 dışı: manuel gezgin, Docker/Podman, öğrenme hafızası, Application Support analizi, kalıcı silme.
+- **UI tasarımı (kullanıcı isteği, Task 11/12'yi geçersiz kılar):** Slack/WhatsApp tarzı modern arayüz. Sol koyu gradient sidebar (kategori listesi, renkli ikon rozetleri, boyut/adet rozetleri, altta Ayarlar ve FDA durumu), sağda "sohbet kartı" tarzı yuvarlak kartlar (avatar daire ikonu, başlık, alt metin, güven hapı, WhatsApp tarzı yuvarlak onay işareti), üstte gradient hero (geri kazanılabilir alan), altta Slack "mesaj kutusu" gibi yüzen komut çubuğu (seçim özeti + gradient birincil buton). Sanatsal "Aurora" paleti: derin indigo `#1B1340`/`#2A1B5E`, violet `#7C3AED`, magenta `#EC4899`, coral `#FB7185`, amber `#F59E0B`, teal `#14B8A6`, mint `#34D399`; açık/koyu modda uyumlu dinamik renkler. Tüm renk, buton stili ve kart stili tek dosyada (`Theme.swift`) toplanır; görünümler ham renk kullanmaz. Butonlar kapsül/yuvarlak köşeli, hover ve basılı durumlu.
 
 ## Review Focus
 
