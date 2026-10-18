@@ -40,26 +40,56 @@ struct DevArtifactRule: Rule {
         .init(dirName: "__pycache__", manifests: python, marker: nil, reason: "Python bytecode önbelleği",
               impact: Impact(regeneration: .automatic, risk: .minimal, note: "Python çalışırken bytecode dosyalarını yeniden üretir.")),
     ]
-    static let skipNames: Set<String> = [".git", "Library", ".Trash", "Applications"]
+    static let skipNames: Set<String> = [".git", ".hg", ".svn", "Library", ".Trash", "Applications",
+                                          ".idea", ".vscode", "site-packages"]
 
     func scan(_ context: RuleContext) -> [Finding] {
-        var out: [Finding] = []
         let fm = FileManager.default
+        // Bir kök altındaki iki seviyeyi ayrı iş birimi yap: tek büyük proje klasörü taramayı geciktirmesin.
+        var units: [(url: URL, shallow: Bool)] = []
+        func dirs(_ url: URL) -> [URL] {
+            ((try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isDirectoryKey])) ?? [])
+                .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
+        }
         for root in context.scanRoots {
-            guard let e = fm.enumerator(at: root, includingPropertiesForKeys: [.isDirectoryKey],
-                                        options: [.skipsPackageDescendants]) else { continue }
-            for case let url as URL in e {
-                if Task.isCancelled { return out }
-                // Symlink'ler isDirectory=false döner; böylece takip edilmezler.
-                guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else { continue }
-                let name = url.lastPathComponent
-                if Self.skipNames.contains(name) { e.skipDescendants(); continue }
-                guard let p = Self.patterns.first(where: { $0.dirName == name }), p.matches(url) else { continue }
-                e.skipDescendants()
-                let size = DirectorySizer.size(of: url)
-                guard size > 0 else { continue }
-                out.append(finding(url, size: size, pattern: p, now: context.now))
+            for child in dirs(root) {
+                let name = child.lastPathComponent
+                if Self.skipNames.contains(name) || name.hasSuffix(".app") || Self.patterns.contains(where: { $0.dirName == name }) {
+                    units.append((child, false)); continue
+                }
+                units.append((child, true))
+                units += dirs(child).map { ($0, false) }
             }
+        }
+        return Parallel.map(units) { unit, cancel in walk(unit.url, context, cancel, shallow: unit.shallow) }
+    }
+
+    private func walk(_ start: URL, _ context: RuleContext, _ cancel: CancelFlag, shallow: Bool) -> [Finding] {
+        var argv: [UnsafeMutablePointer<CChar>?] = [strdup(start.path), nil]
+        defer { free(argv[0]) }
+        // Sembolik bağlantılar FTS_SL olarak gelir ve takip edilmez.
+        guard let fts = fts_open(&argv, FTS_PHYSICAL | FTS_NOCHDIR, nil) else { return [] }
+        defer { fts_close(fts) }
+        var out: [Finding] = []
+        var n = 0
+        while let ent = fts_read(fts) {
+            n += 1
+            if n % 256 == 0, cancel.isSet { break }
+            guard Int32(ent.pointee.fts_info) == FTS_D else { continue }
+            let url = URL(fileURLWithPath: String(cString: ent.pointee.fts_path), isDirectory: true)
+            let name = url.lastPathComponent
+            if Self.skipNames.contains(name) || name.hasSuffix(".app")
+                || context.excludedPaths.contains(where: { url.path == $0 || url.path.hasPrefix($0 + "/") }) {
+                fts_set(fts, ent, FTS_SKIP); continue
+            }
+            guard let p = Self.patterns.first(where: { $0.dirName == name }), p.matches(url) else {
+                if shallow { break }
+                continue
+            }
+            fts_set(fts, ent, FTS_SKIP)
+            let size = DirectorySizer.size(of: url, cancel: cancel)
+            guard size > 0 else { continue }
+            out.append(finding(url, size: size, pattern: p, now: context.now))
         }
         return out
     }
