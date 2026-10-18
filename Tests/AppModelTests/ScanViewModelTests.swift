@@ -237,3 +237,20 @@ private func largeFinding(_ t: TempDir, _ name: String, _ size: Int64) -> Findin
     _ = await bad.testConnection(profile: profile, apiKey: "k")
     #expect(!bad.settings.aiEnabled)
 }
+
+private struct FailingSecrets: SecretStore {
+    func secret(for id: UUID) -> String? { nil }
+    func setSecret(_ value: String?, for id: UUID) throws { throw SecretError.keychain(-34018) }
+}
+
+@MainActor @Test func settingAPIKeyTrimsStoresAndReportsFailure() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let secrets = InMemorySecretStore()
+    let store = SettingsStore(fileURL: t.url.appendingPathComponent("s.json"))
+    let m = ScanViewModel(store: store, secrets: secrets, home: t.url)
+    let id = UUID()
+    #expect(m.setAPIKey("  sk-1\n", for: id))
+    #expect(m.apiKey(for: id) == "sk-1")
+    let broken = ScanViewModel(store: store, secrets: FailingSecrets(), home: t.url)
+    #expect(!broken.setAPIKey("sk-2", for: id))
+}

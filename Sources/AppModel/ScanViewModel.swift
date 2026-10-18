@@ -171,7 +171,16 @@ public final class ScanViewModel {
 
     public func apiKey(for id: UUID) -> String { secrets.secret(for: id) ?? "" }
 
-    public func setAPIKey(_ key: String, for id: UUID) { try? secrets.setSecret(key, for: id) }
+    /// Keychain'e yazar; başarısızlığı arayüzün gösterebilmesi için bildirir.
+    @discardableResult
+    public func setAPIKey(_ key: String, for id: UUID) -> Bool {
+        do {
+            try secrets.setSecret(key.trimmingCharacters(in: .whitespacesAndNewlines), for: id)
+            return true
+        } catch {
+            return false
+        }
+    }
 
     public func testConnection(profile: ProviderProfile, apiKey: String) async -> String {
         let provider = ProviderFactory.make(profile: profile, apiKey: apiKey, http: http)

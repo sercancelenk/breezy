@@ -8,6 +8,12 @@ struct ProfileEditor: View {
     @Binding var apiKey: String
     @Binding var testResult: String
     @State private var headersText = ""
+    @State private var keyStatus = ""
+
+    private var keyIsSaved: Bool {
+        let k = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !k.isEmpty && model.apiKey(for: profile.id) == k
+    }
 
     private var authKind: Binding<Int> {
         Binding(
@@ -54,12 +60,25 @@ struct ProfileEditor: View {
             }
             if authKind.wrappedValue != 0 { TextField("Header / parametre adı", text: authName) }
             SecureField("API key (Keychain'de saklanır)", text: $apiKey)
+            HStack {
+                Button {
+                    keyStatus = model.setAPIKey(apiKey, for: profile.id)
+                        ? "Keychain'e kaydedildi ✓" : "Kaydedilemedi: Keychain erişimi reddedildi"
+                } label: {
+                    Label("Kaydet", systemImage: "key.fill")
+                }
+                .buttonStyle(AuroraButtonStyle())
+                .disabled(apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Text(keyIsSaved ? "Kayıtlı ✓" : (keyStatus.isEmpty ? "Kaydedilmedi" : keyStatus))
+                    .font(.caption).foregroundStyle(keyIsSaved ? Theme.mint : Theme.textSecondary)
+            }
             VStack(alignment: .leading) {
                 Text("Ekstra header'lar (Ad: değer)").font(.caption).foregroundStyle(Theme.textSecondary)
                 TextEditor(text: $headersText).font(.body.monospaced()).frame(height: 56)
             }
             Stepper("Zaman aşımı: \(Int(profile.timeout)) sn", value: $profile.timeout, in: 5...300, step: 5)
         }
+        .onChange(of: profile.id) { keyStatus = "" }
         .onAppear { headersText = profile.extraHeadersText }
         .onChange(of: profile.id) { headersText = profile.extraHeadersText }
         .onChange(of: headersText) { profile.extraHeadersText = headersText }
@@ -79,7 +98,12 @@ struct ProfileEditor: View {
                 Button {
                     testResult = "Test ediliyor…"
                     let p = profile, k = apiKey
-                    Task { testResult = await model.testConnection(profile: p, apiKey: k) }
+                    Task {
+                        testResult = await model.testConnection(profile: p, apiKey: k)
+                        if testResult.hasPrefix("Bağlantı başarılı"), model.setAPIKey(k, for: p.id) {
+                            keyStatus = "Keychain'e kaydedildi ✓"
+                        }
+                    }
                 } label: {
                     Label("Bağlantıyı test et", systemImage: "bolt.fill")
                 }
