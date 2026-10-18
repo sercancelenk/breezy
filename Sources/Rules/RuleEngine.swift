@@ -17,6 +17,7 @@ public struct RuleEngine: Sendable {
                 .init(relativePath: "Library/Caches/Homebrew",
                       reason: "Homebrew indirme önbelleği; `brew cleanup` karşılığı", confidence: .high),
             ]),
+            DevArtifactRule(),
             FixedPathsRule(category: .xcode, entries: [
                 .init(relativePath: "Library/Developer/Xcode/DerivedData",
                       reason: "Xcode derleme çıktıları; yeniden üretilir", confidence: .high),
