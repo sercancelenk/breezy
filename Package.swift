@@ -16,7 +16,9 @@ let package = Package(
         .testTarget(name: "PreferencesTests", dependencies: ["Preferences", "TestSupport"]),
         .target(name: "AI", dependencies: ["CleanerCore", "Preferences"]),
         .testTarget(name: "AITests", dependencies: ["AI", "Preferences", "TestSupport"]),
-        .target(name: "TestSupport", dependencies: ["AI"]),
+        .target(name: "Cleaning", dependencies: ["CleanerCore", "Safety"]),
+        .testTarget(name: "CleaningTests", dependencies: ["Cleaning", "TestSupport"]),
+        .target(name: "TestSupport", dependencies: ["AI", "Cleaning"]),
         .testTarget(name: "CleanerCoreTests", dependencies: ["CleanerCore", "TestSupport"]),
     ]
 )
