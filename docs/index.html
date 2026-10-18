@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ferah — Mac'inin diskini güvenle ferahlat</title>
+<meta name="description" content="Gereksiz dosyaları bulur, silince ne olacağını açıklar, yalnızca onayınla Çöp Kutusu'na taşır. Verilerin Mac'inden çıkmaz.">
+<style>
+:root{
+  --bg:#ffffff; --bg2:#f8f8f8; --text:#1d1c1d; --muted:#616061; --line:#dddddd;
+  --aub:#3f0e40; --aub2:#611f69; --green:#007a5a; --green2:#148567; --blue:#1264a3;
+  --red:#e01e5a; --yellow:#ecb22e; --mint:#2eb67d; --cyan:#36c5f0;
+  --shadow:0 20px 60px rgba(63,14,64,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#1a1d21; --bg2:#222529; --text:#d1d2d3; --muted:#ababad; --line:#3a3c41; --shadow:0 20px 60px rgba(0,0,0,.5); }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;color:var(--text)}
+.logo i{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--aub);color:#fff;font-style:normal;font-weight:800}
+nav .links{display:flex;gap:22px;font-size:15px}
+nav .links a{color:var(--muted)}
+.hero{background:linear-gradient(180deg,var(--aub) 0%,var(--aub2) 100%);color:#fff;padding:0 0 90px;border-radius:0 0 40px 40px;overflow:hidden}
+.hero nav .logo,.hero nav .links a{color:#fff}
+.hero nav .links a{opacity:.8}
+.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding-top:40px}
+h1{font-size:clamp(34px,5vw,56px);line-height:1.08;margin:0 0 18px;font-weight:900;letter-spacing:-.02em}
+.hero p.lead{font-size:19px;opacity:.9;margin:0 0 26px;max-width:520px}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 28px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:5px 12px;font-size:14px;font-weight:600}
+.btn{display:inline-block;background:var(--green);color:#fff;font-weight:700;padding:12px 22px;border-radius:8px;border:0;font-size:16px}
+.btn:hover{background:var(--green2);text-decoration:none}
+.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.5);margin-left:8px}
+.btn.ghost:hover{background:rgba(255,255,255,.12)}
+
+/* Uygulama penceresi maketi */
+.win{background:var(--bg);color:var(--text);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;font-size:13px;border:1px solid rgba(255,255,255,.15)}
+.win-bar{display:flex;gap:7px;padding:10px 12px;background:var(--aub)}
+.win-bar b{width:11px;height:11px;border-radius:50%;display:block}
+.win-body{display:grid;grid-template-columns:150px 1fr}
+.side{background:var(--aub);color:#cfc3cf;padding:8px 8px 14px;min-height:330px}
+.side .ws{color:#fff;font-weight:800;padding:4px 8px 10px;border-bottom:1px solid rgba(255,255,255,.12);margin-bottom:8px}
+.side .it{display:flex;justify-content:space-between;padding:3px 8px;border-radius:6px;font-size:12.5px;white-space:nowrap}
+.side .it.on{background:#1164a3;color:#fff;font-weight:700}
+.side .it em{font-style:normal;background:#cd2553;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;font-weight:700}
+.side .lock{margin-top:14px;background:rgba(255,255,255,.1);color:#fff;border-radius:6px;padding:6px 8px;font-size:11px}
+.main{padding:10px 14px}
+.main h4{margin:0;font-size:15px;font-weight:800}
+.main small{color:var(--muted)}
+.msg{display:flex;gap:9px;padding:9px 0;border-top:1px solid var(--line)}
+.msg:first-of-type{border-top:0}
+.av{width:30px;height:30px;border-radius:7px;flex:none;display:grid;place-items:center;color:#fff;font-size:14px}
+.msg b{font-weight:800}
+.code{font-family:ui-monospace,Menlo,monospace;color:var(--red);background:var(--bg2);border:1px solid var(--line);border-radius:3px;padding:0 4px;font-size:11.5px;margin-left:6px}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:12px;padding:1px 8px;margin:4px 4px 0 0;font-size:11.5px;background:var(--bg2)}
+.warn{color:var(--red);font-weight:700}
+.ok{color:var(--mint);font-weight:700}
+
+section{padding:78px 0}
+section h2{font-size:clamp(26px,3.4vw,38px);line-height:1.15;margin:0 0 12px;font-weight:900;letter-spacing:-.01em}
+section .sub{color:var(--muted);font-size:18px;max-width:640px;margin:0 0 38px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:22px}
+.card .ic{display:grid;place-items:center;width:38px;height:38px;border-radius:9px;color:#fff;font-size:18px;margin-bottom:12px}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
+.step{border-left:3px solid var(--green);padding:2px 0 2px 14px}
+.step:before{counter-increment:s;content:counter(s);display:block;font-weight:900;font-size:26px;color:var(--green)}
+.step b{display:block;margin-bottom:2px}
+.step span{color:var(--muted);font-size:15px}
+.privacy{background:var(--aub);color:#fff;border-radius:28px;padding:56px 44px}
+.privacy h2{color:#fff}
+.privacy .sub{color:rgba(255,255,255,.78)}
+.privacy ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,1fr);gap:14px 30px}
+.privacy li{padding-left:30px;position:relative;font-size:16px}
+.privacy li:before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;background:var(--mint);color:#fff;font-size:12px;font-weight:900;display:grid;place-items:center;top:4px}
+.privacy li b{display:block}
+.privacy li span{opacity:.78;font-size:14.5px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+pre{background:#1d1c1d;color:#e8e8e8;padding:18px 20px;border-radius:10px;overflow:auto;font-size:14px;line-height:1.55}
+pre .c{color:#9a9a9a}
+code{font-family:ui-monospace,Menlo,monospace}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start}
+footer{border-top:1px solid var(--line);padding:30px 0 50px;color:var(--muted);font-size:14px}
+@media (max-width:860px){
+  .hero-grid,.two{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr 1fr}
+  .steps{grid-template-columns:1fr 1fr}
+  .privacy ul{grid-template-columns:1fr}
+  .privacy{padding:36px 22px}
+  nav .links{display:none}
+}
+@media (max-width:560px){ .grid,.steps{grid-template-columns:1fr} .win-body{grid-template-columns:1fr} .side{display:none} }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="#"><i>F</i> Ferah</a>
+      <div class="links"><a href="#ozellikler">Özellikler</a><a href="#gizlilik">Gizlilik</a><a href="#ai">AI</a><a href="#kurulum">Kurulum</a></div>
+    </nav>
+    <div class="hero-grid">
+      <div>
+        <h1>Mac'inin diskini güvenle ferahlat.</h1>
+        <p class="lead">Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır. Verilerin Mac'inden çıkmaz.</p>
+        <div class="badges">
+          <span class="badge">🔒 Yerel çalışır</span>
+          <span class="badge">👁 Dosya içeriğini okumaz</span>
+          <span class="badge">↩︎ Kalıcı silme yok</span>
+          <span class="badge">✨ AI isteğe bağlı</span>
+        </div>
+        <a class="btn" href="#kurulum">Derle ve dene</a><a class="btn ghost" href="#gizlilik">Gizlilik taahhüdü</a>
+      </div>
+
+      <div class="win" aria-hidden="true">
+        <div class="win-bar"><b style="background:#ff5f57"></b><b style="background:#febc2e"></b><b style="background:#28c840"></b></div>
+        <div class="win-body">
+          <div class="side">
+            <div class="ws">Ferah ⌄</div>
+            <div class="it on"><span>⌂ Genel bakış</span><em>4</em></div>
+            <div class="it" style="margin-top:8px;color:#bfb0bf"><span>▾ Kategoriler</span></div>
+            <div class="it"><span># Önbellekler</span><em>1</em></div>
+            <div class="it"><span># Xcode</span><em>1</em></div>
+            <div class="it"><span># Geliştirici</span><em>1</em></div>
+            <div class="it"><span># Büyük öğeler</span><em>1</em></div>
+            <div class="lock">🔒 Verilerin bu Mac'ten çıkmaz</div>
+          </div>
+          <div class="main">
+            <h4># Genel bakış</h4><small>30,5 GB geri kazanılabilir • 4 öğe</small>
+            <div style="margin-top:8px">
+              <div class="msg"><div class="av" style="background:#1264a3">▤</div><div><b>JetBrains</b> <small>8 Eyl 2026</small><span class="code">4,4 GB</span><br>Uygulama önbelleği; yeniden oluşur<br><span class="ok">Silersen:</span> IDE indekslerini ilk açılışta yeniden kurar.<br><span class="chip">● Güven: Yüksek</span><span class="chip">↻ Kendiliğinden geri gelir ✦</span></div></div>
+              <div class="msg"><div class="av" style="background:#36c5f0">⚒</div><div><b>Archives</b> <small>Xcode</small><span class="code">9,5 GB</span><br>Xcode arşivleri<br><span class="warn">Silersen:</span> Yeniden üretilemez; dSYM sembolleri burada olabilir.<br><span class="chip">● Güven: Düşük</span><span class="chip">⚠ Geri gelmez</span></div></div>
+              <div class="msg"><div class="av" style="background:#2eb67d">❐</div><div><b>node_modules</b><span class="code">1,9 GB</span><br>npm bağımlılıkları<br><span class="chip">● Güven: Orta</span><span class="chip">↻ Komutla geri gelir</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="ozellikler">
+    <h2>Temizlemeden önce neyin ne olduğunu bil.</h2>
+    <p class="sub">Çoğu temizleyici ne sildiğini söylemez. Ferah her bulgu için "geri gelir mi, uygulama bozulur mu, kişisel verim olabilir mi?" sorusunu cevaplar.</p>
+    <div class="grid">
+      <div class="card"><div class="ic" style="background:#1264a3">⚡</div><h3>Hızlı akıllı tarama</h3><p>Önbellekler, loglar, Homebrew, Xcode, <code>node_modules</code>, <code>target</code>, <code>venv</code>… Paralel ve <code>fts</code> tabanlı; gerçek bir diskte yaklaşık 6 saniye.</p></div>
+      <div class="card"><div class="ic" style="background:#e01e5a">🔎</div><h3>Büyük öğeler taraması</h3><p>Kural bilmese bile 100 MB / 1 GB / 5 GB üzeri klasör ve dosyaları bulur. Hiçbiri otomatik seçilmez.</p></div>
+      <div class="card"><div class="ic" style="background:#2eb67d">🧭</div><h3>"Silersen ne olur?"</h3><p>Kendiliğinden / komutla / geri gelmez. JetBrains, Chrome, Spotify gibi bilinen uygulamalar için özel notlar.</p></div>
+      <div class="card"><div class="ic" style="background:#611f69">✨</div><h3>AI danışmanı</h3><p>İsteğe bağlı. Toplu iyileştirme ya da her kartta "AI'a sor". Anthropic, OpenAI uyumlu veya şirket LLM'in.</p></div>
+      <div class="card"><div class="ic" style="background:#ecb22e">🗂</div><h3>Kategori bazlı tarama</h3><p>Soldaki kategoriyi seç, "Sadece bunu tara". Diğer sonuçların ve seçimlerin korunur.</p></div>
+      <div class="card"><div class="ic" style="background:#007a5a">↩︎</div><h3>Güvenli temizlik</h3><p>Önce önizleme, sonra Çöp Kutusu. Her şey geri alınabilir. Korunan klasörler asla silinemez.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dört adımda ferahlık</h2>
+    <p class="sub">Karar her zaman sende.</p>
+    <div class="steps">
+      <div class="step"><b>Tara</b><span>Bilinen kalıplar paralel taranır; yalnızca yol ve boyut okunur.</span></div>
+      <div class="step"><b>İncele</b><span>Güven, geri gelme durumu ve risk her kartta. İstersen AI'a sor.</span></div>
+      <div class="step"><b>Önizle</b><span>Tam liste ve riskli öğeler vurgulanır; güvenlik geçidi son kez doğrular.</span></div>
+      <div class="step"><b>Çöp Kutusu'na taşı</b><span>Kalıcı silme yok; istediğini geri koyabilirsin.</span></div>
+    </div>
+  </section>
+
+  <section id="gizlilik">
+    <div class="privacy">
+      <h2>Gizlilik pazarlık konusu değil.</h2>
+      <p class="sub">Disklerinde ne olduğu senin işin. Ferah bunu görmek zorunda değil, görmez de.</p>
+      <ul>
+        <li><b>Ağ bağlantısı yok</b><span>AI kapalıyken uygulama ağa hiç bağlanmaz. Telemetri, analitik, hesap yok.</span></li>
+        <li><b>Dosya içeriği okunmaz</b><span>Yalnızca yol, boyut ve tarih bilgisi kullanılır.</span></li>
+        <li><b>AI senin onayınla</b><span>Açıksa yalnızca gizlenmiş yol (<code>~/…</code>), boyut ve yaş gider. Gönderilecek metni önce görür, onaylarsın.</span></li>
+        <li><b>Yerel model desteği</b><span>Ollama gibi yerel bir modelle hiçbir şey Mac'inden çıkmaz.</span></li>
+        <li><b>API key Keychain'de</b><span>Ayar dosyasında, logda ya da hata mesajında asla yer almaz.</span></li>
+        <li><b>Kalıcı silme yok</b><span>Her şey Çöp Kutusu'na gider. Ev dizini, Belgeler, <code>.ssh</code>, Keychain, iCloud ve Mesajlar korunur.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="ai">
+    <div class="two">
+      <div>
+        <h2>İstediğin yapay zekayı bağla.</h2>
+        <p class="sub" style="margin-bottom:18px">Ayarlar'dan host, model ve API key ver. Şirketinin LLM platformu dahil.</p>
+        <table>
+          <tr><th>Profil</th><th>Ne için</th></tr>
+          <tr><td><b>Claude</b></td><td>Anthropic API</td></tr>
+          <tr><td><b>OpenAI uyumlu</b></td><td>Ollama, LM Studio, LiteLLM, Azure, geçitler</td></tr>
+          <tr><td><b>Özel HTTP</b></td><td>Şirket içi LLM: kendi gövde şablonun, kendi kimlik doğrulaman</td></tr>
+        </table>
+      </div>
+<pre><span class="c">// Özel HTTP profili — gövde şablonu</span>
+{
+  "model": "{{model}}",
+  "system": "{{system}}",
+  "prompt": "{{prompt}}"
+}
+<span class="c">// Yanıt yolu</span>
+output.text</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Neyi tarar?</h2>
+    <p class="sub">Önceden tanımlı kurallar + ev dizininde büyük öğe taraması.</p>
+    <table>
+      <tr><th>Kategori</th><th>Örnek</th><th>Varsayılan</th></tr>
+      <tr><td>Uygulama önbellekleri</td><td><code>~/Library/Caches/*</code></td><td>Yüksek güven</td></tr>
+      <tr><td>Loglar, Homebrew</td><td><code>~/Library/Logs</code>, Homebrew önbelleği</td><td>Yüksek güven</td></tr>
+      <tr><td>Xcode</td><td>DerivedData, Simulator, DeviceSupport, <b>Archives</b></td><td>Archives asla seçili gelmez</td></tr>
+      <tr><td>Geliştirici artifact'ları</td><td><code>node_modules</code>, <code>target</code>, <code>build</code>, <code>.gradle</code>, <code>venv</code>, <code>__pycache__</code></td><td>Projenin yaşına göre</td></tr>
+      <tr><td>Cihaz yedekleri, kurulum dosyaları</td><td>iPhone yedekleri, <code>.dmg</code> <code>.pkg</code> <code>.iso</code></td><td>Elle seçilir</td></tr>
+      <tr><td>Büyük öğeler</td><td>Eşiğin üstündeki klasör/dosyalar</td><td>Asla seçili gelmez</td></tr>
+    </table>
+  </section>
+
+  <section id="kurulum">
+    <h2>Derle ve dene</h2>
+    <p class="sub">macOS 26 ve Xcode 26.3 gerekir.</p>
+<pre><span class="c"># derle ve test et</span>
+swift build -q &amp;&amp; swift test -q
+
+<span class="c"># .app paketini oluştur ve aç</span>
+scripts/make-app.sh
+open build/Ferah.app</pre>
+    <p style="color:var(--muted)">İlk açılışta <b>Sistem Ayarları → Gizlilik ve Güvenlik → Tam Disk Erişimi</b>'ne uygulamayı ekle. Ayrıntılar için <a href="../README.md">README</a>.</p>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Ferah · Yerel, açık ve güvenli disk temizleyici. Verilerin senin.</div>
+</footer>
+</body>
+</html>
