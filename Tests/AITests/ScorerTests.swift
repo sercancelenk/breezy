@@ -101,3 +101,20 @@ private func withImpact(_ f: Finding, _ r: Regeneration, _ k: Risk, _ note: Stri
     #expect(p.user.contains("indeks yeniden") && p.user.contains("automatic"))
     #expect(p.system.contains("regenerates") && p.system.contains("impact"))
 }
+
+@Test func aiCanFlagUserDataButRuleUserDataCannotBeCleared() throws {
+    let t = try TempDir(); defer { t.remove() }
+    var ruleFlagged = finding(t, "Movies/a")
+    ruleFlagged.impact = Impact(regeneration: .never, risk: .medium, note: "n", isGeneric: true, userData: true)
+    let plain = finding(t, "Other/b")
+    let prompt = AIPrompt(findings: [ruleFlagged, plain], home: t.url)
+    let ia = try #require(prompt.indexedIDs.firstIndex(of: ruleFlagged.id))
+    let ib = try #require(prompt.indexedIDs.firstIndex(of: plain.id))
+    let out = AIScorer.apply([
+        AIVerdict(i: ia, confidence: "low", reason: "r", userData: false),
+        AIVerdict(i: ib, confidence: "low", reason: "r", userData: true),
+    ], to: [ruleFlagged, plain], prompt: prompt)
+    #expect(out.first { $0.id == ruleFlagged.id }?.impact.userData == true)
+    #expect(out.first { $0.id == plain.id }?.impact.userData == true)
+    #expect(!prompt.system.contains("extension") && prompt.system.contains("only path and size"))
+}

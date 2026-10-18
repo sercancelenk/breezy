@@ -90,6 +90,24 @@ struct RootView: View {
                     }.buttonStyle(SoftButtonStyle())
                 }
             }
+            if model.phase != .scanning && model.phase != .cleaning {
+                let mb = model.settings.largeItemThresholdMB
+                let limit = mb >= 1024 ? "\(mb / 1024) GB" : "\(mb) MB"
+                if model.isLargeScanning {
+                    banner(icon: "externaldrive.fill", tint: Theme.coral,
+                           text: "Ev dizininde büyük öğeler aranıyor… (günlük klasörler önce)") {
+                        ProgressView().controlSize(.small)
+                        Button("İptal") { model.cancelLargeScan() }.buttonStyle(SoftButtonStyle())
+                    }
+                } else {
+                    let found = model.findings.contains { $0.category == .large }
+                    banner(icon: "externaldrive.fill", tint: Theme.coral,
+                           text: "Kural bilmediği büyük klasör ve dosyalar (\(limit)+) ayrı taranır; hiçbiri seçili gelmez.") {
+                        Button(found ? "Yeniden tara" : "Büyük öğeleri tara") { model.startLargeScan() }
+                            .buttonStyle(SoftButtonStyle())
+                    }
+                }
+            }
             if let status = model.aiStatus {
                 banner(icon: "sparkles", tint: Theme.violet, text: status) { EmptyView() }
             }

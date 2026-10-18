@@ -6,11 +6,24 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var aiEnabled: Bool
     public var scanRoots: [String]
     public var excludedPaths: [String]
+    /// MB; 0 = büyük öğe taraması kapalı.
+    public var largeItemThresholdMB: Int
 
     public init(profiles: [ProviderProfile] = [], activeProfileID: UUID? = nil, aiEnabled: Bool = false,
-                scanRoots: [String] = [], excludedPaths: [String] = []) {
+                scanRoots: [String] = [], excludedPaths: [String] = [], largeItemThresholdMB: Int = 1024) {
         self.profiles = profiles; self.activeProfileID = activeProfileID; self.aiEnabled = aiEnabled
         self.scanRoots = scanRoots; self.excludedPaths = excludedPaths
+        self.largeItemThresholdMB = largeItemThresholdMB
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        profiles = try c.decodeIfPresent([ProviderProfile].self, forKey: .profiles) ?? []
+        activeProfileID = try c.decodeIfPresent(UUID.self, forKey: .activeProfileID)
+        aiEnabled = try c.decodeIfPresent(Bool.self, forKey: .aiEnabled) ?? false
+        scanRoots = try c.decodeIfPresent([String].self, forKey: .scanRoots) ?? []
+        excludedPaths = try c.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
+        largeItemThresholdMB = try c.decodeIfPresent(Int.self, forKey: .largeItemThresholdMB) ?? 1024
     }
 
     public var activeProfile: ProviderProfile? { profiles.first { $0.id == activeProfileID } }

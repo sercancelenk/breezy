@@ -56,6 +56,9 @@ extension FindingCategory {
         case .homebrew: "cup.and.saucer.fill"
         case .xcode: "hammer.fill"
         case .devArtifact: "shippingbox.fill"
+        case .large: "externaldrive.fill"
+        case .backup: "iphone.gen3"
+        case .installers: "arrow.down.app.fill"
         }
     }
 
@@ -66,6 +69,9 @@ extension FindingCategory {
         case .homebrew: Theme.coral
         case .xcode: Theme.teal
         case .devArtifact: Theme.magenta
+        case .large: Theme.coral
+        case .backup: Theme.violet
+        case .installers: Theme.teal
         }
     }
 }
@@ -175,7 +181,7 @@ struct ConfidencePill: View {
 
 extension Impact {
     var tint: Color {
-        if regeneration == .never || risk >= .high { return Theme.coral }
+        if regeneration == .never || risk >= .high || userData { return Theme.coral }
         if regeneration == .manual || risk >= .medium { return Theme.amber }
         return Theme.mint
     }
@@ -188,7 +194,7 @@ struct ImpactPill: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: impact.regeneration == .never ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
-            Text(impact.regeneration.title)
+            Text(impact.userData ? "Kullanıcı verisi olabilir" : impact.regeneration.title)
             if impact.fromAI { Image(systemName: "sparkles") }
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))

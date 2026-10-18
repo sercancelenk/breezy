@@ -7,8 +7,18 @@ public struct RuleEngine: Sendable {
 
     public init(rules: [any Rule]) { self.rules = rules }
 
+    static let backupRule = ChildrenRule(
+        category: .backup, relativeDirectory: "Library/Application Support/MobileSync/Backup", excluding: [],
+        confidence: .medium, reason: "iPhone/iPad yedeği",
+        impact: Impact(regeneration: .never, risk: .high,
+                       note: "Cihazında olmayan veriler yalnızca bu yedekte olabilir; silinirse geri gelmez."))
+
+    /// Ağır ev dizini taraması; akıllı taramadan ayrı çalıştırılır.
+    public static func largeItems() -> RuleEngine { RuleEngine(rules: [LargeItemsRule()]) }
+
     public static func standard() -> RuleEngine {
         RuleEngine(rules: [
+            backupRule, InstallersRule(),
             ChildrenRule(category: .cache, relativeDirectory: "Library/Caches", excluding: ["Homebrew"],
                          confidence: .high, reason: "Uygulama önbelleği; uygulama yeniden oluşturur",
                          impact: .genericCache, knownApps: true),
@@ -52,11 +62,27 @@ public struct RuleEngine: Sendable {
             return acc
         }
         var seen = Set<String>()
-        return all
-            .filter { f in
-                gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
-            }
+        let allowed = all.filter { f in
+            gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
+        }
+        return Self.reconcileLarge(allowed, threshold: context.largeThreshold)
             .sorted { $0.size > $1.size }
             .filter { seen.insert($0.id).inserted }
+    }
+
+    /// Büyük öğe, başka bir bulgunun içindeyse düşer; başka bulguları içeriyorsa onların boyutu çıkarılır.
+    public static func reconcileLarge(_ findings: [Finding], threshold: Int64) -> [Finding] {
+        let others = findings.filter { $0.category != .large }
+        return findings.compactMap { f in
+            guard f.category == .large else { return f }
+            let p = f.url.path
+            if others.contains(where: { p == $0.url.path || p.hasPrefix($0.url.path + "/") }) { return nil }
+            let inner = others.filter { $0.url.path.hasPrefix(p + "/") }.reduce(Int64(0)) { $0 + $1.size }
+            guard inner > 0 else { return f }
+            let rest = f.size - inner
+            guard rest >= threshold else { return nil }
+            return Finding(url: f.url, size: rest, category: f.category, confidence: f.confidence,
+                           reason: f.reason, lastModified: f.lastModified, impact: f.impact)
+        }
     }
 }

@@ -3,6 +3,7 @@ import Testing
 import TestSupport
 import CleanerCore
 import Rules
+import Safety
 import Preferences
 import AI
 import Cleaning
@@ -169,4 +170,51 @@ private struct RootsRule: Rule {
     let m = makeModel(t, findings: [archive, cache])
     await m.scan()
     #expect(m.selected == [cache.id])
+}
+
+private func largeFinding(_ t: TempDir, _ name: String, _ size: Int64) -> Finding {
+    Finding(url: t.url.appendingPathComponent("Other/\(name)"), size: size, category: .large, confidence: .low,
+            reason: "r", lastModified: nil,
+            impact: Impact(regeneration: .never, risk: .medium, note: "n", isGeneric: true))
+}
+
+@MainActor private func makeModel(_ t: TempDir, findings: [Finding], large: [Finding]) -> ScanViewModel {
+    ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                  secrets: InMemorySecretStore(),
+                  engine: RuleEngine(rules: [StubRule(findings: findings)]),
+                  largeEngine: RuleEngine(rules: [StubRule(findings: large)]),
+                  home: t.url, trasher: StubTrasher(), http: StubHTTP(json: "{}"))
+}
+
+@MainActor @Test func largeScanIsSeparateMergesAndNeverSelects() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let cache = finding(t, "c", 100, .high)
+    let m = makeModel(t, findings: [cache], large: [largeFinding(t, "big", 5_000)])
+    await m.scanLarge()                       // akıllı tarama yapılmadan da çalışır
+    #expect(m.findings.map(\.category) == [.large] && m.selected.isEmpty && m.phase == .ready)
+    await m.scan()                            // akıllı tarama büyük öğeleri silmez
+    #expect(Set(m.findings.map(\.category)) == [.cache, .large])
+    #expect(m.selected == [cache.id])
+    await m.scanLarge()                       // tekrar taramak eskisini değiştirir, çoğaltmaz
+    #expect(m.findings.filter { $0.category == .large }.count == 1)
+    #expect(!m.isLargeScanning)
+}
+
+@MainActor @Test func largeScanDropsItemsInsideSmartFindings() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let cache = finding(t, "c", 100, .high)
+    let inner = Finding(url: cache.url.appendingPathComponent("deep"), size: 50, category: .large, confidence: .low,
+                        reason: "r", lastModified: nil)
+    let m = makeModel(t, findings: [cache], large: [inner])
+    await m.scan()
+    await m.scanLarge()
+    #expect(m.findings.map(\.id) == [cache.id])
+}
+
+@Test func standardEngineDoesNotWalkWholeHomeForLargeItems() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    try t.file("Other/blob/b.bin", bytes: 120_000)
+    let out = await RuleEngine.standard().scan(RuleContext(home: t.url, largeThreshold: 50_000),
+                                               gate: SafetyGate(home: t.url))
+    #expect(!out.contains { $0.category == .large })
 }

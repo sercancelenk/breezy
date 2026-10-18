@@ -17,20 +17,23 @@ public final class ScanViewModel {
     public private(set) var report: CleanReport?
     public private(set) var aiStatus: String?
     public private(set) var aiRunning = false
+    public private(set) var isLargeScanning = false
     private(set) var scanTask: Task<Void, Never>?
+    private(set) var largeTask: Task<Void, Never>?
     public var settings: SettingsData
 
     @ObservationIgnored private let store: SettingsStore
     @ObservationIgnored private let secrets: any SecretStore
     @ObservationIgnored private let engine: RuleEngine
+    @ObservationIgnored private let largeEngine: RuleEngine
     @ObservationIgnored private let home: URL
     @ObservationIgnored private let trasher: any Trasher
     @ObservationIgnored private let http: any HTTPClient
 
-    public init(store: SettingsStore, secrets: any SecretStore, engine: RuleEngine = .standard(),
+    public init(store: SettingsStore, secrets: any SecretStore, engine: RuleEngine = .standard(), largeEngine: RuleEngine = .largeItems(),
                 home: URL, trasher: any Trasher = WorkspaceTrasher(),
                 http: any HTTPClient = URLSessionHTTPClient()) {
-        self.store = store; self.secrets = secrets; self.engine = engine
+        self.store = store; self.secrets = secrets; self.engine = engine; self.largeEngine = largeEngine
         self.home = home; self.trasher = trasher; self.http = http
         self.settings = store.load(home: home)
     }
@@ -83,12 +86,39 @@ public final class ScanViewModel {
         let roots = settings.scanRoots
             .map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
             .filter { $0.path == homePath || $0.path.hasPrefix(homePath + "/") }
-        let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths))
+        let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths),
+                              largeThreshold: Int64(max(0, settings.largeItemThresholdMB)) * 1_048_576)
         let result = await engine.scan(ctx, gate: SafetyGate(home: home))
         if Task.isCancelled { phase = findings.isEmpty ? .idle : before; return }
-        findings = result
+        let keptLarge = findings.filter { $0.category == .large }
+        findings = RuleEngine.reconcileLarge(result + keptLarge, threshold: largeThresholdBytes)
+            .sorted { $0.size > $1.size }
         selected = Set(result.filter { $0.confidence == .high && $0.impact.preselectable }.map(\.id))
         phase = .ready
+    }
+
+    private var largeThresholdBytes: Int64 { Int64(max(100, settings.largeItemThresholdMB)) * 1_048_576 }
+
+    public func startLargeScan() {
+        guard !isLargeScanning else { return }
+        isLargeScanning = true
+        largeTask = Task { await scanLarge() }
+    }
+
+    public func cancelLargeScan() { largeTask?.cancel() }
+
+    /// Ev dizinindeki büyük öğeler; akıllı taramadan bağımsız, sonuçlar mevcut listeye eklenir.
+    public func scanLarge() async {
+        isLargeScanning = true
+        defer { isLargeScanning = false }
+        let ctx = RuleContext(home: home, excludedPaths: Set(settings.excludedPaths), largeThreshold: largeThresholdBytes)
+        let result = await largeEngine.scan(ctx, gate: SafetyGate(home: home))
+        if Task.isCancelled { return }
+        let others = findings.filter { $0.category != .large }
+        findings = RuleEngine.reconcileLarge(others + result.filter { $0.category == .large }, threshold: largeThresholdBytes)
+            .sorted { $0.size > $1.size }
+        selected.formIntersection(Set(findings.map(\.id)))
+        if phase == .idle { phase = .ready }
     }
 
     public func aiPrompt() -> AIPrompt? {

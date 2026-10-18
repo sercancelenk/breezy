@@ -90,6 +90,16 @@ struct ScanSettingsView: View {
     var body: some View {
         @Bindable var model = model
         Form {
+            Section("Büyük öğeler") {
+                Picker("Şu boyutun üstündekileri listele", selection: $model.settings.largeItemThresholdMB) {
+                    Text("100 MB").tag(100)
+                    Text("500 MB").tag(500)
+                    Text("1 GB").tag(1024)
+                    Text("5 GB").tag(5120)
+                }
+                Text("Ev dizininde bu boyutun üstündeki klasör ve dosyalar listelenir. Hiçbiri otomatik seçilmez; yalnızca yol ve boyut kullanılır, içerik okunmaz.")
+                    .font(.caption).foregroundStyle(Theme.textSecondary)
+            }
             PathListEditor(title: "Taranacak proje kökleri", paths: $model.settings.scanRoots)
             PathListEditor(title: "Hariç tutulan yollar", paths: $model.settings.excludedPaths)
         }

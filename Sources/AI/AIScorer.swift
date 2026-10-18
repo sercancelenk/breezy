@@ -8,11 +8,12 @@ public struct AIVerdict: Codable, Equatable, Sendable {
     public let regenerates: String?
     public let risk: String?
     public let impact: String?
+    public let userData: Bool?
 
     public init(i: Int, confidence: String, reason: String,
-                regenerates: String? = nil, risk: String? = nil, impact: String? = nil) {
+                regenerates: String? = nil, risk: String? = nil, impact: String? = nil, userData: Bool? = nil) {
         self.i = i; self.confidence = confidence; self.reason = reason
-        self.regenerates = regenerates; self.risk = risk; self.impact = impact
+        self.regenerates = regenerates; self.risk = risk; self.impact = impact; self.userData = userData
     }
 }
 
@@ -55,7 +56,8 @@ public enum AIScorer {
         let worse = regen > rule.regeneration || risk > rule.risk
         let useAI = !aiNote.isEmpty && (rule.isGeneric || worse)
         return Impact(regeneration: regen, risk: risk, note: useAI ? aiNote : rule.note,
-                      isGeneric: rule.isGeneric, fromAI: rule.fromAI || useAI || rule.isGeneric && v.impact != nil)
+                      isGeneric: rule.isGeneric, fromAI: rule.fromAI || useAI || rule.isGeneric && v.impact != nil,
+                      userData: rule.userData || v.userData == true)
     }
 
     public static func refine(prompt: AIPrompt, findings: [Finding], provider: any AIProvider) async throws -> [Finding] {

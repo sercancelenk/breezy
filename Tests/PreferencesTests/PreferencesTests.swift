@@ -37,3 +37,11 @@ import TestSupport
     try s.setSecret("k", for: id); #expect(s.secret(for: id) == "k")
     try s.setSecret(nil, for: id); #expect(s.secret(for: id) == nil)
 }
+
+@Test func oldSettingsFileWithoutLargeThresholdStillLoads() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let file = t.url.appendingPathComponent("s.json")
+    try Data(#"{"profiles":[],"aiEnabled":true,"scanRoots":["/x"],"excludedPaths":[]}"#.utf8).write(to: file)
+    let loaded = SettingsStore(fileURL: file).load(home: t.url)
+    #expect(loaded.aiEnabled && loaded.scanRoots == ["/x"] && loaded.largeItemThresholdMB == 1024)
+}

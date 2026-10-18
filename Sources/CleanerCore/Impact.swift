@@ -65,10 +65,13 @@ public struct Impact: Sendable, Hashable {
     /// Kural bu öğe hakkında özel bir şey bilmiyor; AI'ın incelemesi değerli.
     public var isGeneric: Bool
     public var fromAI: Bool
+    /// Kullanıcının kendi verisi olabilir (belgeler, medya, uygulama veritabanları); asla varsayılan seçilmez.
+    public var userData: Bool
 
-    public init(regeneration: Regeneration, risk: Risk, note: String, isGeneric: Bool = false, fromAI: Bool = false) {
+    public init(regeneration: Regeneration, risk: Risk, note: String, isGeneric: Bool = false, fromAI: Bool = false,
+                userData: Bool = false) {
         self.regeneration = regeneration; self.risk = risk; self.note = note
-        self.isGeneric = isGeneric; self.fromAI = fromAI
+        self.isGeneric = isGeneric; self.fromAI = fromAI; self.userData = userData
     }
 
     public static let routine = Impact(regeneration: .automatic, risk: .low, note: "")
@@ -77,5 +80,5 @@ public struct Impact: Sendable, Hashable {
         isGeneric: true)
 
     /// Varsayılan seçime girebilir mi? Geri gelmeyenler yalnızca elle seçilir.
-    public var preselectable: Bool { regeneration != .never }
+    public var preselectable: Bool { regeneration != .never && !userData }
 }
