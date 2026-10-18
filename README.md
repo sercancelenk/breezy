@@ -1,12 +1,28 @@
+<div align="center">
+
+<img src="docs/icon.png" alt="Breezy" width="96" />
+
 # Breezy
 
-**Mac'ini güvenle ferahlat.** Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır. Verilerin bu Mac'ten çıkmaz.
+**Mac'ini güvenle ferahlat.**
 
-> 🇬🇧 **English summary:** Breezy is a native, privacy-first macOS cleanup app (SwiftUI, macOS 26). It finds caches, logs, build artifacts, large forgotten items and more; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes (never file contents) and only after you approve a preview of the exact message. See [Privacy & security](#gizlilik-ve-güvenlik) and [Build](#derleme-ve-çalıştırma).
+Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır.<br/>
+Verilerin bu Mac'ten çıkmaz.
 
-![Breezy ana ekran](docs/images/image.png)
+![macOS 26](https://img.shields.io/badge/macOS-26-black?logo=apple)
+![Swift 6.2](https://img.shields.io/badge/Swift-6.2-orange?logo=swift)
+![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-blue)
+![Tests](https://img.shields.io/badge/tests-88%20passing-brightgreen)
+![Privacy](https://img.shields.io/badge/telemetry-none-success)
+[![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
-Tanıtım sayfası: [`docs/index.html`](docs/index.html)
+[Özellikler](#özellikler) · [Derleme](#derleme-ve-çalıştırma) · [Gizlilik](#gizlilik-ve-güvenlik) · [Mimari](#mimari) · [Tanıtım sayfası](docs/index.html)
+
+<img src="docs/images/image.png" alt="Breezy ana ekran" width="900" />
+
+</div>
+
+> 🇬🇧 **English summary:** Breezy is a native, privacy-first macOS cleanup app (SwiftUI, macOS 26). It finds caches, logs, build artifacts, stale Downloads/Documents and large forgotten items; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It also warns you when your disk fills up and lists the apps using the most memory. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes. Build from source with `scripts/make-app.sh`.
 
 ---
 
@@ -40,7 +56,11 @@ Breezy üç şeye odaklanır:
 - **Akıllı tarama (hızlı):** Önbellekler, loglar, Homebrew, Xcode, geliştirici artifact'ları (`node_modules`, `target`, `build`, `.gradle`, Python `venv`/`__pycache__`), iOS/iPad yedekleri, Downloads'taki kurulum dosyaları. Gerçek bir disk üzerinde ~6 sn.
 - **Büyük öğeler (ayrı bölüm, ev dizini):** Kenar çubuğunda **Keşfet → Büyük öğeler**; kendi taraması, eşiği, listesi, seçimi ve temizliği vardır, "Genel bakış" toplamlarına ve seçimine karışmaz.
    Eşiğin (100 MB / 500 MB / **1 GB** / 5 GB) üzerindeki klasör ve dosyaları, kural bilmese bile bulur. Önce günlük klasörlerin (Belgeler, Masaüstü, İndirilenler…) taranır, `Library` en sona kalır. Hiçbiri otomatik seçilmez.
-- **Kategori bazlı tarama:** Kenar çubuğunda bir kategori seç → **"Sadece bunu tara"**; diğer sonuçlar ve seçimler korunur.
+- **Gruplu kenar çubuğu:** Kategoriler *Sistem ve uygulamalar*, *Geliştirici*, *Dosyalarım* ve *Araçlar* altında toplanır. Genel taramadan sonra üstte kategori başına bulunan alan hap'leri görünür.
+- **Kategori bazlı tarama:** Kenar çubuğunda bir kategori seç → **"Bu kategoriyi tara"**; diğer sonuçlar ve seçimler korunur.
+- **Downloads ve Documents:** Downloads'ta 90 günden eski öğeler, Documents'ta 100 MB üstü ve 1 yıldır değişmemiş dosyalar listelenir. Kişisel veri sayılır, hiçbiri önceden seçilmez.
+- **Disk dolu uyarısı:** Disk doluluğu %70'e ulaşırsa macOS bildirimi gönderir. Günde 3 kez (09:00, 14:00, 20:00) bir LaunchAgent kontrol eder, uygulama kapalıyken de çalışır. Tarama yapmaz, yalnızca sistemin toplam/kullanılan alan değerini okur.
+- **Çalışan uygulamalar:** Kenar çubuğunda **Araçlar → Çalışan uygulamalar**; en çok bellek kullanan uygulamaları listeler. **Kapat** uygulamadan nazikçe kapanmasını ister, **Zorla kapat** onay sonrası anında sonlandırır. Finder, Dock ve Breezy'nin kendisi listelenmez.
 - **"Silersen ne olur?" analizi:** Her bulguda geri gelme durumu (kendiliğinden / komutla / geri gelmez), risk ve açıklama. Bilinen uygulamalar için (JetBrains, Chrome, Spotify, Playwright, CocoaPods…) uygulamaya özel notlar.
 - **AI danışmanı (isteğe bağlı):** Toplu iyileştirme veya her kartta **"AI'a sor"**. Anthropic, OpenAI uyumlu (Ollama, LiteLLM, Azure…) veya şirket içi özel HTTP LLM.
 - **Güvenli temizlik:** Önce dry-run, sonra Çöp Kutusu'na taşıma. Geri alınabilir.
@@ -82,6 +102,8 @@ Yerel bir modelle (ör. Ollama) AI'ı kullanırsan **hiçbir veri Mac'inden çı
 | Geliştirici artifact'ları | `node_modules` (yanında `package.json`), `target` (`pom.xml`/`Cargo.toml`), `build` ve `.gradle` (gradle dosyaları), `venv`/`.venv` (`pyvenv.cfg` + manifest), `__pycache__` | Yaşa göre: <7 gün düşük, <30 gün orta, sonrası yüksek |
 | Cihaz yedekleri | `Library/Application Support/MobileSync/Backup/*` | Orta (geri gelmez) |
 | Kurulum dosyaları | `~/Downloads` içinde `.dmg`, `.pkg`, `.iso`, `.ipsw` | Düşük/orta |
+| Downloads | `~/Downloads` üst düzey öğeleri, 90 günden eski (kurulum dosyaları hariç) | Düşük (kullanıcı verisi, seçili gelmez) |
+| Documents | `~/Documents` içinde 100 MB üstü ve 1 yıldır değişmemiş dosyalar | Düşük (kullanıcı verisi, seçili gelmez) |
 | Büyük öğeler | Ev dizininde eşiğin üstündeki en iç klasör ve dosyalar | Düşük (hiçbir zaman seçili değil) |
 
 Dev artifact taraması `Ayarlar → Tarama`'daki proje köklerinde yapılır (varsayılan: `Developer`, `development`, `Projects`, `workspace(s)`, `src`, `code`, `Documents`, `Desktop` içinden var olanlar). Hariç tutulan bir yolun altındaki her şey de hariç sayılır.
@@ -119,7 +141,7 @@ Gereksinimler: **macOS 26**, **Xcode 26.3** (Swift 6.2).
 ```bash
 git clone <repo-url> && cd cleaner-app
 swift build -q          # derle
-swift test -q           # 77 test
+swift test -q           # 88 test
 scripts/make-app.sh     # evrensel (arm64 + x86_64) release derle, build/Breezy.app üret (ad-hoc imza)
 open build/Breezy.app
 ```
@@ -151,7 +173,10 @@ CleanerCore   Finding, Confidence, Impact (saf model)
 DiskScanner   fts tabanlı boyut hesabı, Parallel.map, iptal bayrağı
 Safety        SafetyGate (silmenin zorunlu geçidi)
 Rules         Rule protokolü: ChildrenRule, FixedPathsRule, DevArtifactRule,
-              InstallersRule, LargeItemsRule, KnownApps, RuleEngine
+              InstallersRule, DownloadsRule, DocumentsRule, LargeItemsRule,
+              KnownApps, RuleEngine
+DiskMonitor   Disk doluluk ölçümü, eşik, bildirim ve günlük LaunchAgent kaydı
+RunningApps   Çalışan uygulamalar, bellek ölçümü, Kapat / Zorla kapat
 Preferences   ProviderProfile, SettingsStore, SecretStore (Keychain)
 AI            AIProvider (Anthropic / OpenAI uyumlu / Özel HTTP), AIPrompt, AIScorer
 Cleaning      Cleaner (dry-run + Çöp Kutusu), WorkspaceTrasher
@@ -170,6 +195,8 @@ Tasarım belgesi: [`docs/superpowers/specs/`](docs/superpowers/specs), uygulama 
 ## Sınırlar ve yol haritası
 
 **Bugünkü sınırlar**
+- Disk uyarısı eşiği şimdilik sabit (%70); uygulama içinden ayarlanabilmesi sonraki sürümde.
+- "Çalışan uygulamalar" çok süreçli uygulamalarda (ör. Chrome) yalnızca ana sürecin belleğini gösterir.
 - Yalnızca **ev dizinini** tarar (harici diskler ve sistem alanı kapsam dışı).
 - Toplu "AI ile iyileştir" tek istekte en büyük 40 belirsiz öğeyi değerlendirir.
 - Hard link'ler boyutta iki kez sayılabilir.

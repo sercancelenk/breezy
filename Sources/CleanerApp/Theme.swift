@@ -242,3 +242,29 @@ enum Format {
         n == 0 ? "0 KB" : ByteCountFormatter.string(fromByteCount: n, countStyle: .file)
     }
 }
+
+/// Öğeleri satır satır sarar; her öğe kendi doğal genişliğinde kalır.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(subviews, width: proposal.width ?? .infinity).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let r = arrange(subviews, width: bounds.width)
+        for (s, p) in zip(subviews, r.origins) { s.place(at: CGPoint(x: bounds.minX + p.x, y: bounds.minY + p.y), proposal: .unspecified) }
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> (origins: [CGPoint], size: CGSize) {
+        var origins: [CGPoint] = []
+        var x: CGFloat = 0, y: CGFloat = 0, rowH: CGFloat = 0, maxW: CGFloat = 0
+        for s in subviews {
+            let sz = s.sizeThatFits(.unspecified)
+            if x > 0, x + sz.width > width { x = 0; y += rowH + spacing; rowH = 0 }
+            origins.append(CGPoint(x: x, y: y))
+            x += sz.width + spacing; rowH = max(rowH, sz.height); maxW = max(maxW, x - spacing)
+        }
+        return (origins, CGSize(width: maxW, height: y + rowH))
+    }
+}

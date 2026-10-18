@@ -240,7 +240,7 @@ struct RootView: View {
     }
 
     private var categoryPills: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
+        FlowLayout(spacing: 8) {
                 ForEach(model.grouped, id: \.category) { group in
                     let c = group.category
                     Button { filter = .category(c) } label: {
