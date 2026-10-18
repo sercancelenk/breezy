@@ -70,6 +70,8 @@ extension FindingCategory {
         case .large: "externaldrive.fill"
         case .backup: "iphone.gen3"
         case .installers: "arrow.down.app.fill"
+        case .downloads: "arrow.down.circle.fill"
+        case .documents: "doc.fill"
         }
     }
 
@@ -83,6 +85,8 @@ extension FindingCategory {
         case .large: Theme.coral
         case .backup: Theme.indigo
         case .installers: Theme.teal
+        case .downloads: Theme.blue
+        case .documents: Theme.amber
         }
     }
 }

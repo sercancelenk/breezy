@@ -1,8 +1,8 @@
 # Breezy
 
-**Mac'inin diskini güvenle ferahlat.** Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır. Verilerin bu Mac'ten çıkmaz.
+**Mac'ini güvenle ferahlat.** Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır. Verilerin bu Mac'ten çıkmaz.
 
-> 🇬🇧 **English summary:** Breezy is a native, privacy-first macOS disk cleaner (SwiftUI, macOS 26). It finds caches, logs, build artifacts, large forgotten items and more; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes (never file contents) and only after you approve a preview of the exact message. See [Privacy & security](#gizlilik-ve-güvenlik) and [Build](#derleme-ve-çalıştırma).
+> 🇬🇧 **English summary:** Breezy is a native, privacy-first macOS cleanup app (SwiftUI, macOS 26). It finds caches, logs, build artifacts, large forgotten items and more; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes (never file contents) and only after you approve a preview of the exact message. See [Privacy & security](#gizlilik-ve-güvenlik) and [Build](#derleme-ve-çalıştırma).
 
 ![Breezy ana ekran](docs/images/image.png)
 

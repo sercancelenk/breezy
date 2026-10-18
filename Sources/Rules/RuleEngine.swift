@@ -18,7 +18,7 @@ public struct RuleEngine: Sendable {
 
     public static func standard() -> RuleEngine {
         RuleEngine(rules: [
-            backupRule, InstallersRule(),
+            backupRule, InstallersRule(), DownloadsRule(), DocumentsRule(),
             ChildrenRule(category: .cache, relativeDirectory: "Library/Caches", excluding: ["Homebrew"],
                          confidence: .high, reason: "Uygulama önbelleği; uygulama yeniden oluşturur",
                          impact: .genericCache, knownApps: true),
@@ -69,9 +69,17 @@ public struct RuleEngine: Sendable {
         let allowed = all.filter { f in
             (categories?.contains(f.category) ?? true) && gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
         }
-        return Self.reconcileLarge(allowed, threshold: context.largeThreshold)
+        return Self.dropNested(Self.reconcileLarge(allowed, threshold: context.largeThreshold))
             .sorted { $0.size > $1.size }
             .filter { seen.insert($0.id).inserted }
+    }
+
+    /// Başka bir bulgunun içinde kalan bulgular düşer; aksi halde aynı bayt iki kez sayılır.
+    static func dropNested(_ findings: [Finding]) -> [Finding] {
+        let paths = findings.map(\.url.path)
+        return findings.enumerated().compactMap { i, f in
+            paths.enumerated().contains { j, p in j != i && f.url.path.hasPrefix(p + "/") } ? nil : f
+        }
     }
 
     /// Büyük öğe, başka bir bulgunun içindeyse düşer; başka bulguları içeriyorsa onların boyutu çıkarılır.

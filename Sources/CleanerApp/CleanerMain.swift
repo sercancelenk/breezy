@@ -1,10 +1,23 @@
 import SwiftUI
 import AppModel
 import Preferences
+import DiskMonitor
 
 @main
+enum Entry {
+    static func main() {
+        if CommandLine.arguments.contains(DiskAlert.checkArgument) {
+            Task { await DiskAlert.checkAndNotify(); exit(0) }
+            dispatchMain()
+        }
+        CleanerMain.main()
+    }
+}
+
 struct CleanerMain: App {
     @State private var model = ScanViewModel.live()
+
+    init() { DiskAlert.setUp() }
 
     var body: some Scene {
         WindowGroup {

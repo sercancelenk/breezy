@@ -6,6 +6,7 @@ enum SidebarFilter: Hashable {
     case all
     case category(FindingCategory)
     case large
+    case apps
 }
 
 struct SidebarView: View {
@@ -18,35 +19,55 @@ struct SidebarView: View {
         VStack(alignment: .leading, spacing: 6) {
             brand.padding(.top, 30).padding(.bottom, 8)
 
-            row(title: "Genel bakış", symbol: "sparkles", tint: Theme.coral,
-                count: model.smartFindings.count, bytes: model.totalBytes, value: .all)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 6) {
+                    row(title: "Genel bakış", symbol: "sparkles", tint: Theme.coral,
+                        count: model.smartFindings.count, bytes: model.totalBytes, value: .all)
 
-            Text("KATEGORİLER")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.white.opacity(0.45))
-                .padding(.top, 14).padding(.leading, 12)
+                    ForEach(Self.groups, id: \.title) { g in
+                        header(g.title)
+                        ForEach(g.categories, id: \.self) { c in
+                            let items = model.smartFindings.filter { $0.category == c }
+                            row(title: c.title, symbol: c.symbol, tint: c.tint, count: items.count,
+                                bytes: items.reduce(0) { $0 + $1.size }, value: .category(c))
+                        }
+                        if g.title == Self.filesGroup {
+                            row(title: "Büyük öğeler", symbol: FindingCategory.large.symbol, tint: FindingCategory.large.tint,
+                                count: model.largeFindings.count, bytes: model.largeBytes, value: .large,
+                                busy: model.isLargeScanning)
+                        }
+                    }
 
-            ForEach(FindingCategory.allCases.filter { $0 != .large }, id: \.self) { c in
-                let items = model.smartFindings.filter { $0.category == c }
-                row(title: c.title, symbol: c.symbol, tint: c.tint, count: items.count,
-                    bytes: items.reduce(0) { $0 + $1.size }, value: .category(c))
+                    header("ARAÇLAR")
+                    row(title: "Çalışan uygulamalar", symbol: "memorychip", tint: Theme.teal,
+                        count: 0, bytes: 0, value: .apps)
+                }
             }
 
-            Text("KEŞFET")
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(.white.opacity(0.45))
-                .padding(.top, 14).padding(.leading, 12)
-            row(title: "Büyük öğeler", symbol: FindingCategory.large.symbol, tint: FindingCategory.large.tint,
-                count: model.largeFindings.count, bytes: model.largeBytes, value: .large,
-                busy: model.isLargeScanning)
-
-            Spacer()
             footer
         }
         .padding(.horizontal, 12).padding(.bottom, 14)
         .frame(width: 296)
         .frame(maxHeight: .infinity)
         .background(Theme.sidebar.ignoresSafeArea())
+    }
+
+    private static let filesGroup = "DOSYALARIM"
+    private static let groups: [(title: String, categories: [FindingCategory])] = [
+        ("SİSTEM VE UYGULAMALAR", [.cache, .logs, .backup]),
+        ("GELİŞTİRİCİ", [.xcode, .devArtifact, .homebrew]),
+        (filesGroup, [.installers, .downloads, .documents]),
+    ]
+
+    private func header(_ title: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Divider().overlay(.white.opacity(0.15))
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.leading, 12)
+        }
+        .padding(.top, 12)
     }
 
     private var brand: some View {
@@ -59,7 +80,7 @@ struct SidebarView: View {
             .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
             VStack(alignment: .leading, spacing: 1) {
                 Text("Breezy").font(.system(size: 18, weight: .bold)).foregroundStyle(.white)
-                Text("Disk temizleyici").font(.system(size: 12)).foregroundStyle(.white.opacity(0.55))
+                Text("Mac'ini ferah tut").font(.system(size: 12)).foregroundStyle(.white.opacity(0.55))
             }
         }
         .padding(.leading, 6)
@@ -90,7 +111,7 @@ struct SidebarView: View {
                         .background(Color(hex: 0xCD2553), in: Capsule())
                 }
             }
-            .foregroundStyle(.white.opacity(count > 0 || value == .all ? 1 : 0.5))
+            .foregroundStyle(.white.opacity(count > 0 || value == .all || value == .apps ? 1 : 0.5))
             .padding(.horizontal, 8).padding(.vertical, 4)
             .background(selected ? Theme.selection : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .contentShape(Rectangle())

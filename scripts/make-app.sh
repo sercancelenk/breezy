@@ -12,8 +12,9 @@ swift build -c release -q --arch arm64 --arch x86_64
 BIN="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/CleanerApp"
 APP="build/$APP_NAME.app"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Library/LaunchAgents"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+cp Resources/com.sercancelenk.breezy.diskcheck.plist "$APP/Contents/Library/LaunchAgents/"
 cp "$BIN" "$APP/Contents/MacOS/CleanerApp"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

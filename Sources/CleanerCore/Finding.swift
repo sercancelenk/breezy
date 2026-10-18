@@ -1,7 +1,7 @@
 import Foundation
 
 public enum FindingCategory: String, Sendable, Codable, CaseIterable {
-    case cache, logs, homebrew, xcode, devArtifact, large, backup, installers
+    case cache, logs, homebrew, xcode, devArtifact, large, backup, installers, downloads, documents
 
     public var title: String {
         switch self {
@@ -13,6 +13,8 @@ public enum FindingCategory: String, Sendable, Codable, CaseIterable {
         case .large: "Büyük öğeler"
         case .backup: "Cihaz yedekleri"
         case .installers: "Kurulum dosyaları"
+        case .downloads: "Downloads"
+        case .documents: "Documents"
         }
     }
 }

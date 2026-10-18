@@ -17,6 +17,7 @@ struct RootView: View {
         case .all: model.smartFindings
         case .category(let c): model.smartFindings.filter { $0.category == c }
         case .large: model.largeFindings
+        case .apps: []
         }
     }
 
@@ -33,6 +34,7 @@ struct RootView: View {
         case .all: "Genel bakış"
         case .category(let c): c.title
         case .large: "Büyük öğeler"
+        case .apps: "Çalışan uygulamalar"
         }
     }
 
@@ -41,7 +43,9 @@ struct RootView: View {
             SidebarView(filter: $filter, hasFDA: hasFDA)
             ZStack(alignment: .bottom) {
                 Theme.canvas.ignoresSafeArea()
-                if filter == .large {
+                if filter == .apps {
+                    RunningAppsView()
+                } else if filter == .large {
                     VStack(spacing: 0) {
                         largeHero.padding(.horizontal, 24).padding(.top, 30)
                         banners.padding(.horizontal, 24)
@@ -93,27 +97,29 @@ struct RootView: View {
             Circle().fill(Theme.amber.opacity(0.16)).frame(width: 90).offset(x: 540, y: 60)
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(filter == .all ? "Geri kazanılabilir alan" : channelTitle)
+                    Text(filter == .all ? "Bulunan toplam alan" : channelTitle)
                         .font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
                     Text(Format.bytes(visible.reduce(0) { $0 + $1.size }))
                         .font(.system(size: 44, weight: .heavy)).monospacedDigit().foregroundStyle(.white)
-                    Text("\(visible.count) öğe • \(model.selected.count) seçili • \(Format.bytes(model.selectedBytes))")
+                    Text(filter == .all ? "\(visible.count) öğe bulundu • Önerilen seçim: \(model.selected.count) öğe, \(Format.bytes(model.selectedBytes))" : "\(visible.count) öğe • \(model.selected.count) seçili • \(Format.bytes(model.selectedBytes))")
                         .font(.system(size: 13)).foregroundStyle(.white.opacity(0.85)).lineLimit(1)
                 }
                 Spacer(minLength: 12)
                 VStack(alignment: .trailing, spacing: 8) {
                     if case .category(let c) = filter {
                         Button { model.startCategoryScan(c) } label: {
-                            Label("Sadece bunu tara", systemImage: "magnifyingglass").lineLimit(1).fixedSize()
+                            Label("Bu kategoriyi tara", systemImage: "magnifyingglass").lineLimit(1).fixedSize()
                         }
                         .buttonStyle(GlassButtonStyle()).disabled(busy)
                         .help("Yalnızca “\(c.title)” kategorisini tarar; diğer sonuçlar korunur")
                     }
-                    Button { model.startScan() } label: {
-                        Label(model.phase == .idle ? "Taramayı başlat" : (filter == .all ? "Yeniden tara" : "Tümünü tara"),
-                              systemImage: "arrow.clockwise").lineLimit(1).fixedSize()
+                    if case .category = filter {} else {
+                        Button { model.startScan() } label: {
+                            Label(model.phase == .idle ? "Taramayı başlat" : "Yeniden tara",
+                                  systemImage: "arrow.clockwise").lineLimit(1).fixedSize()
+                        }
+                        .buttonStyle(GlassButtonStyle()).disabled(busy)
                     }
-                    .buttonStyle(GlassButtonStyle()).disabled(busy)
                     HStack(spacing: 8) {
                         Button { askAI(nil) } label: { Label("AI ile iyileştir", systemImage: "sparkles").lineLimit(1).fixedSize() }
                             .buttonStyle(GlassButtonStyle()).disabled(model.aiRunning)
@@ -189,11 +195,10 @@ struct RootView: View {
         case .idle where model.smartFindings.isEmpty:
             emptyState(symbol: "externaldrive.badge.checkmark", title: "Henüz taranmadı",
                        message: "Gereksiz dosyaları bulmak için taramayı başlat.") {
-                HStack {
+                if case .category(let c) = filter {
+                    Button("“\(c.title)” kategorisini tara") { model.startCategoryScan(c) }.buttonStyle(AuroraButtonStyle())
+                } else {
                     Button("Taramayı başlat") { model.startScan() }.buttonStyle(AuroraButtonStyle())
-                    if case .category(let c) = filter {
-                        Button("Sadece “\(c.title)”") { model.startCategoryScan(c) }.buttonStyle(SoftButtonStyle())
-                    }
                 }
             }
         case .scanning, .cleaning:
@@ -219,6 +224,7 @@ struct RootView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
                         if case .all = filter {
+                            categoryPills
                             ForEach(model.grouped, id: \.category) { group in
                                 sectionHeader(group.category.title)
                                 ForEach(group.items) { card($0) }
@@ -230,6 +236,27 @@ struct RootView: View {
                     .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 130)
                 }
             }
+        }
+    }
+
+    private var categoryPills: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 8, alignment: .leading)], alignment: .leading, spacing: 8) {
+                ForEach(model.grouped, id: \.category) { group in
+                    let c = group.category
+                    Button { filter = .category(c) } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: c.symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(c.tint)
+                            Text(c.title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                            Text(Format.bytes(group.items.reduce(0) { $0 + $1.size }))
+                                .font(.system(size: 12).monospacedDigit()).foregroundStyle(Theme.textSecondary)
+                        }
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, 12).padding(.vertical, 7)
+                        .background(Theme.card, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.stroke))
+                    }
+                    .buttonStyle(.plain)
+                }
         }
     }
 
