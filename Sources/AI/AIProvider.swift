@@ -21,6 +21,8 @@ public enum AIError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .invalidConfig(let m): "Geçersiz ayar: \(m)"
+        case .http(let c) where c == 401 || c == 403:
+            "HTTP \(c): kimlik doğrulama reddedildi; API key eksik, yanlış ya da bu host için geçersiz"
         case .http(let c): "HTTP \(c)"
         case .badResponse(let m): "Geçersiz yanıt: \(m)"
         }

@@ -89,3 +89,11 @@ private func bodyJSON(_ r: URLRequest) throws -> [String: Any] {
     #expect(try JSONPathLite.extract("a.1.b", from: d) == "7")
     #expect(throws: AIError.self) { try JSONPathLite.extract("a.5.b", from: d) }
 }
+
+@Test func apiKeyWhitespaceIsTrimmedAndAuthErrorsExplainThemselves() async throws {
+    let stub = StubHTTP(json: #"{"content":[{"text":"OK"}]}"#)
+    _ = try await AnthropicProvider(profile: .anthropic(), apiKey: "  sk-ant-123\n", http: stub)
+        .complete(system: "s", prompt: "p")
+    #expect(stub.lastRequest?.value(forHTTPHeaderField: "x-api-key") == "sk-ant-123")
+    #expect(AIError.http(401).localizedDescription.contains("API key"))
+}

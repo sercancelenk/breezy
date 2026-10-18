@@ -4,6 +4,7 @@ import Preferences
 enum RequestSupport {
     static func makeRequest(profile: ProviderProfile, apiKey: String, body: Data,
                             extra: [String: String] = [:]) throws -> URLRequest {
+        let apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let base = profile.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/ "))
         let path = profile.path.hasPrefix("/") ? profile.path : "/" + profile.path
         guard var comps = URLComponents(string: base + path) else {
