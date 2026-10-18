@@ -4,6 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CleanerApp",
     platforms: [.macOS(.v26)],
+    products: [.executable(name: "CleanerApp", targets: ["CleanerApp"])],
     targets: [
         .target(name: "CleanerCore"),
         .target(name: "DiskScanner", dependencies: ["CleanerCore"]),
@@ -20,6 +21,8 @@ let package = Package(
         .testTarget(name: "CleaningTests", dependencies: ["Cleaning", "TestSupport"]),
         .target(name: "AppModel", dependencies: ["CleanerCore", "Rules", "Safety", "Preferences", "AI", "Cleaning"]),
         .testTarget(name: "AppModelTests", dependencies: ["AppModel", "Rules", "TestSupport"]),
+        .executableTarget(name: "CleanerApp",
+                          dependencies: ["AppModel", "CleanerCore", "AI", "Cleaning", "Preferences"]),
         .target(name: "TestSupport", dependencies: ["AI", "Cleaning"]),
         .testTarget(name: "CleanerCoreTests", dependencies: ["CleanerCore", "TestSupport"]),
     ]
