@@ -27,7 +27,10 @@ struct AISettingsView: View {
         @Bindable var model = model
         Form {
             Section {
-                Toggle("AI desteğini aç", isOn: $model.settings.aiEnabled)
+                Label("AI kapalıyken uygulama ağa hiç bağlanmaz. Açıkken yalnızca gizlenmiş yol, boyut ve yaş gider ve her gönderimi önceden görüp onaylarsın. Yerel model (Ollama gibi) kullanırsan hiçbir şey Mac'inden çıkmaz.",
+                  systemImage: "lock.fill")
+                .font(.caption).foregroundStyle(Theme.textSecondary)
+            Toggle("AI desteğini aç", isOn: $model.settings.aiEnabled)
                 Picker("Aktif profil", selection: $model.settings.activeProfileID) {
                     Text("Yok").tag(UUID?.none)
                     ForEach(model.settings.profiles) { Text($0.name).tag(UUID?.some($0.id)) }

@@ -12,6 +12,7 @@ struct SidebarView: View {
     @Environment(ScanViewModel.self) private var model
     @Binding var filter: SidebarFilter
     let hasFDA: Bool
+    @State private var showPrivacy = false
 
     private let muted = Color.white.opacity(0.7)
 
@@ -65,12 +66,28 @@ struct SidebarView: View {
             }
 
             Spacer()
+            Button { showPrivacy = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.fill").font(.system(size: 12)).foregroundStyle(Theme.mint)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Verilerin bu Mac'ten çıkmaz").font(.system(size: 13, weight: .semibold))
+                        Text("Gizlilik ve güvenlik").font(.system(size: 11)).foregroundStyle(muted)
+                    }
+                    Spacer()
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10).padding(.vertical, 7)
+                .background(Color.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 6))
+                .padding(.horizontal, 8)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showPrivacy) { PrivacySheet() }
             HStack(spacing: 8) {
                 Circle().fill(hasFDA ? Theme.mint : Theme.amber).frame(width: 9, height: 9)
                 Text(hasFDA ? "Tam Disk Erişimi açık" : "Tam Disk Erişimi gerekli")
                     .font(.system(size: 13)).foregroundStyle(muted)
             }
-            .padding(.horizontal, 16).padding(.bottom, 16)
+            .padding(.horizontal, 16).padding(.vertical, 12)
         }
         .frame(maxHeight: .infinity)
         .background(Theme.sidebar.ignoresSafeArea())

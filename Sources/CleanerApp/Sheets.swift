@@ -166,3 +166,60 @@ struct AIPreviewSheet: View {
         .card()
     }
 }
+
+/// Gizlilik ve güvenlik taahhütleri; her madde kodda doğrulanabilir (README "Gizlilik ve güvenlik" bölümü).
+struct PrivacySheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    private let points: [(icon: String, title: String, text: String)] = [
+        ("lock.shield.fill", "Verilerin bu Mac'ten çıkmaz",
+         "Varsayılan olarak uygulama ağa hiç bağlanmaz. Tarama, analiz ve temizlik tamamen yerelde yapılır. Hesap, telemetri ya da analitik yoktur."),
+        ("eye.slash.fill", "Dosya içeriği asla okunmaz",
+         "Uygulama yalnızca yol, boyut ve tarih bilgisine bakar. Hiçbir dosyanın içi açılmaz."),
+        ("sparkles", "AI isteğe bağlı ve senin onayınla",
+         "AI kapalıyken hiçbir şey gönderilmez. Açık olsa bile yalnızca gizlenmiş yol (~/…), boyut ve yaş gider; gönderilecek metin her seferinde önce gösterilir ve sen onaylamadan gitmez. Yerel bir model (örn. Ollama) kullanırsan hiçbir şey Mac'inden çıkmaz."),
+        ("key.fill", "API key yalnızca Keychain'de",
+         "Anahtarın macOS Keychain'de saklanır; ayar dosyasına, loga ya da başka bir yere yazılmaz."),
+        ("trash.fill", "Kalıcı silme yok",
+         "Seçtiklerin Çöp Kutusu'na taşınır ve oradan geri alınabilir. Her silmeden önce ne olacağı gösterilir."),
+        ("checkmark.shield.fill", "Korunan alanlar",
+         "Ev dizini, Belgeler/Masaüstü/İndirilenler gibi kök klasörler, .ssh, .gnupg, Keychain, iCloud Drive ve Mesajlar hiçbir koşulda silinemez. Büyük öğeler ve geri gelmeyenler asla otomatik seçilmez."),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(systemName: "lock.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
+                    .frame(width: 42, height: 42).background(Theme.green, in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Gizlilik ve güvenlik").font(.system(size: 20, weight: .bold))
+                    Text("Verilerin senin; bu uygulama onları görmek zorunda değil.")
+                        .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
+                }
+            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(points, id: \.title) { p in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: p.icon).foregroundStyle(Theme.green).frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(p.title).font(.system(size: 14, weight: .bold))
+                                Text(p.text).font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(2)
+            }
+            .frame(height: 340)
+            HStack {
+                Spacer()
+                Button("Tamam") { dismiss() }.buttonStyle(AuroraButtonStyle()).keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(24)
+        .frame(width: 560)
+        .background(Theme.canvas)
+    }
+}
