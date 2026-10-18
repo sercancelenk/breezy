@@ -1,6 +1,7 @@
 import SwiftUI
 import AppModel
 import AI
+import CleanerCore
 
 struct ConfirmSheet: View {
     @Environment(ScanViewModel.self) private var model
@@ -24,10 +25,19 @@ struct ConfirmSheet: View {
                 Text("Güvenlik nedeniyle atlanacak: \(run.rejected.count) öğe")
                     .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Theme.coral)
             }
+            let risky = run.allowed.filter { $0.impact.regeneration == .never || $0.impact.risk >= .medium }
+            if !risky.isEmpty {
+                Label("\(risky.count) öğe geri gelmeyebilir veya uygulamayı etkileyebilir; listede işaretli.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Theme.amber)
+            }
             ScrollView {
                 VStack(spacing: 6) {
                     ForEach(run.allowed) { f in
                         HStack {
+                            if f.impact.regeneration == .never || f.impact.risk >= .medium {
+                                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(f.impact.tint)
+                            }
                             Image(systemName: f.category.symbol).foregroundStyle(f.category.tint)
                             Text(f.url.lastPathComponent).lineLimit(1)
                             Spacer()

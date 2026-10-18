@@ -45,9 +45,11 @@ public struct Finding: Sendable, Identifiable, Hashable {
     public var confidence: Confidence
     public var reason: String
     public let lastModified: Date?
+    public var impact: Impact
 
     public init(url: URL, size: Int64, category: FindingCategory, confidence: Confidence,
-                reason: String, lastModified: Date?) {
+                reason: String, lastModified: Date?, impact: Impact = .routine) {
+        self.impact = impact
         self.url = url
         self.size = size
         self.category = category

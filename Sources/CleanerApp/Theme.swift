@@ -173,6 +173,31 @@ struct ConfidencePill: View {
     }
 }
 
+extension Impact {
+    var tint: Color {
+        if regeneration == .never || risk >= .high { return Theme.coral }
+        if regeneration == .manual || risk >= .medium { return Theme.amber }
+        return Theme.mint
+    }
+}
+
+/// "Silersem ne olur?" rozeti: geri gelme durumu ve (AI değerlendirdiyse) ✨.
+struct ImpactPill: View {
+    let impact: Impact
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: impact.regeneration == .never ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
+            Text(impact.regeneration.title)
+            if impact.fromAI { Image(systemName: "sparkles") }
+        }
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .foregroundStyle(Theme.textPrimary)
+        .padding(.horizontal, 9).padding(.vertical, 4)
+        .background(impact.tint.opacity(0.18), in: Capsule())
+    }
+}
+
 /// WhatsApp'taki seçim işareti gibi yuvarlak onay.
 struct CheckCircle: View {
     let on: Bool

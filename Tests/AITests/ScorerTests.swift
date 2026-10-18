@@ -63,3 +63,41 @@ private func finding(_ t: TempDir, _ rel: String, size: Int64 = 1_048_576,
     let out = try await AIScorer.refine(prompt: prompt, findings: [high, med], provider: Canned())
     #expect(out.first { $0.id == med.id }?.confidence == .high)
 }
+
+private func withImpact(_ f: Finding, _ r: Regeneration, _ k: Risk, _ note: String, generic: Bool) -> Finding {
+    var f = f
+    f.impact = Impact(regeneration: r, risk: k, note: note, isGeneric: generic)
+    return f
+}
+
+@Test func genericHighItemsAreAICandidatesKnownOnesAreNot() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let generic = withImpact(finding(t, "Library/Caches/a", .high), .automatic, .low, "n", generic: true)
+    let known = withImpact(finding(t, "Library/Caches/b", .high), .automatic, .low, "n", generic: false)
+    #expect(AIScorer.candidates(from: [generic, known]).map(\.id) == [generic.id])
+}
+
+@Test func aiImpactOnlyWorsensKnownRuleImpactButFillsGenericOnes() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let known = withImpact(finding(t, "Library/Caches/k"), .manual, .medium, "kural notu", generic: false)
+    let generic = withImpact(finding(t, "Library/Caches/g"), .automatic, .low, "genel", generic: true)
+    let prompt = AIPrompt(findings: [known, generic], home: t.url)
+    let ik = try #require(prompt.indexedIDs.firstIndex(of: known.id))
+    let ig = try #require(prompt.indexedIDs.firstIndex(of: generic.id))
+    let out = AIScorer.apply([
+        AIVerdict(i: ik, confidence: "medium", reason: "r", regenerates: "automatic", risk: "none", impact: "ai gevşetti"),
+        AIVerdict(i: ig, confidence: "medium", reason: "r", regenerates: "never", risk: "high", impact: "oturum kaybolur"),
+    ], to: [known, generic], prompt: prompt)
+    let k = try #require(out.first { $0.id == known.id }), g = try #require(out.first { $0.id == generic.id })
+    #expect(k.impact.regeneration == .manual && k.impact.risk == .medium && k.impact.note == "kural notu")
+    #expect(g.impact.regeneration == .never && g.impact.risk == .high && g.impact.note == "oturum kaybolur")
+    #expect(g.impact.fromAI)
+}
+
+@Test func promptCarriesImpactMetadataAndAsksForImpact() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let f = withImpact(finding(t, "Library/Caches/JetBrains"), .automatic, .low, "indeks yeniden", generic: true)
+    let p = AIPrompt(findings: [f], home: t.url)
+    #expect(p.user.contains("indeks yeniden") && p.user.contains("automatic"))
+    #expect(p.system.contains("regenerates") && p.system.contains("impact"))
+}

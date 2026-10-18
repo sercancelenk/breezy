@@ -160,3 +160,13 @@ private struct RootsRule: Rule {
     await m.scan()
     #expect(m.findings.map { $0.url.lastPathComponent } == ["in"])
 }
+
+@MainActor @Test func itemsThatDoNotComeBackAreNeverPreselected() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    var archive = finding(t, "arch", 300, .high)
+    archive.impact = Impact(regeneration: .never, risk: .high, note: "geri gelmez")
+    let cache = finding(t, "c", 100, .high)
+    let m = makeModel(t, findings: [archive, cache])
+    await m.scan()
+    #expect(m.selected == [cache.id])
+}

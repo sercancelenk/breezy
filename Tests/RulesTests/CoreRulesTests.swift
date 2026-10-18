@@ -63,3 +63,32 @@ private struct FixedRule: Rule {
     let out = await RuleEngine(rules: [FixedRule(findings: [child, sibling])]).scan(ctx, gate: SafetyGate(home: t.url))
     #expect(out.map(\.size) == [5])
 }
+
+@Test func cacheChildrenGetKnownAppImpactOrGenericFlag() throws {
+    let t = try TempDir(); defer { t.remove() }
+    try t.file("Library/Caches/JetBrains/IntelliJIdea/idx.bin", bytes: 10_000)
+    try t.file("Library/Caches/com.mystery.app/x.bin", bytes: 10_000)
+    let rule = ChildrenRule(category: .cache, relativeDirectory: "Library/Caches", excluding: [],
+                            confidence: .high, reason: "r", impact: .genericCache, knownApps: true)
+    let out = rule.scan(RuleContext(home: t.url))
+    let jb = try #require(out.first { $0.url.lastPathComponent == "JetBrains" })
+    let other = try #require(out.first { $0.url.lastPathComponent == "com.mystery.app" })
+    #expect(!jb.impact.isGeneric && jb.impact.note.contains("indeks"))
+    #expect(other.impact.isGeneric)
+}
+
+@Test func standardRulesDeclareImpactAndArchivesDoNotComeBack() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    try t.file("Library/Developer/Xcode/Archives/a.xcarchive/i.bin", bytes: 10_000)
+    try t.file("Library/Developer/Xcode/DerivedData/p/o.bin", bytes: 10_000)
+    try t.file("Library/Logs/app.log", bytes: 10_000)
+    let engine = RuleEngine.standard()
+    let out = await awaitScan(engine, t)
+    #expect(out.first { $0.url.lastPathComponent == "Archives" }?.impact.regeneration == .never)
+    #expect(out.first { $0.url.lastPathComponent == "DerivedData" }?.impact.regeneration == .automatic)
+    #expect(out.first { $0.url.lastPathComponent == "Logs" || $0.url.lastPathComponent == "app.log" }?.impact.note.isEmpty == false)
+}
+
+private func awaitScan(_ engine: RuleEngine, _ t: TempDir) async -> [Finding] {
+    await engine.scan(RuleContext(home: t.url), gate: SafetyGate(home: t.url))
+}

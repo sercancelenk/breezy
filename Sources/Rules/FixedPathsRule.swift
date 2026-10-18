@@ -7,6 +7,7 @@ struct FixedPathsRule: Rule {
         let relativePath: String
         let reason: String
         let confidence: Confidence
+        var impact: Impact = .routine
     }
 
     let category: FindingCategory
@@ -19,7 +20,7 @@ struct FixedPathsRule: Rule {
             let size = DirectorySizer.size(of: url)
             guard size > 0 else { return nil }
             return Finding(url: url, size: size, category: category, confidence: e.confidence,
-                           reason: e.reason, lastModified: DirectorySizer.modificationDate(of: url))
+                           reason: e.reason, lastModified: DirectorySizer.modificationDate(of: url), impact: e.impact)
         }
     }
 }

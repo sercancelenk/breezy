@@ -52,3 +52,14 @@ private func scan(_ t: TempDir, root: String = "w") -> [Finding] {
         withDestinationURL: t.url.appendingPathComponent("outside/data"))
     #expect(scan(t).isEmpty)
 }
+
+@Test func artifactsDeclareHowTheyComeBack() throws {
+    let t = try TempDir(); defer { t.remove() }
+    try t.file("w/p/package.json"); try t.file("w/p/node_modules/d/i.js", bytes: 5_000)
+    try t.file("w/py/requirements.txt"); try t.file("w/py/venv/pyvenv.cfg"); try t.file("w/py/venv/l.py", bytes: 5_000)
+    let out = scan(t)
+    let nm = try #require(out.first { $0.url.lastPathComponent == "node_modules" })
+    let venv = try #require(out.first { $0.url.lastPathComponent == "venv" })
+    #expect(nm.impact.regeneration == .manual && nm.impact.note.contains("npm install"))
+    #expect(venv.impact.risk >= .medium)
+}

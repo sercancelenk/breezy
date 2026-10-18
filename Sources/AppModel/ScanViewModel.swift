@@ -87,7 +87,7 @@ public final class ScanViewModel {
         let result = await engine.scan(ctx, gate: SafetyGate(home: home))
         if Task.isCancelled { phase = findings.isEmpty ? .idle : before; return }
         findings = result
-        selected = Set(result.filter { $0.confidence == .high }.map(\.id))
+        selected = Set(result.filter { $0.confidence == .high && $0.impact.preselectable }.map(\.id))
         phase = .ready
     }
 
@@ -105,6 +105,7 @@ public final class ScanViewModel {
         do {
             let text = try await provider.complete(system: prompt.system, prompt: prompt.user)
             findings = AIScorer.apply(try AIScorer.parse(text), to: findings, prompt: prompt)
+            selected.subtract(findings.filter { !$0.impact.preselectable }.map(\.id))
             aiStatus = "AI \(prompt.indexedIDs.count) öğeyi değerlendirdi."
         } catch {
             aiStatus = "AI kullanılamadı, kural tabanlı sonuçlar gösteriliyor (\(error.localizedDescription))."

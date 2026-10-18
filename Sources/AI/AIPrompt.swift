@@ -14,8 +14,13 @@ public struct AIPrompt: Sendable, Identifiable {
     static let systemPrompt = """
         You review disk-cleanup candidates on macOS. Each item is metadata only; you cannot see file contents. \
         For every item decide whether deleting it is safe because it can be regenerated, and how confident you are. \
-        Reply with ONLY a JSON array: [{"i":<index>,"confidence":"low|medium|high","reason":"<max 12 words, Turkish>"}]. \
-        Be conservative: if unsure, use "low".
+        Also reason about the owning application from the folder names (e.g. JetBrains caches are re-indexed on next launch; \
+        browser caches are re-downloaded; an Archives folder cannot be recreated) and state what the user will experience if deleted. \
+        "regenerates": automatic = the app recreates it alone, manual = needs a command or re-download, never = cannot be recreated. \
+        "risk": none|low|medium|high chance that an app breaks or user data/sessions/offline content is lost. \
+        Reply with ONLY a JSON array: [{"i":<index>,"confidence":"low|medium|high","reason":"<max 12 words, Turkish>",\
+        "regenerates":"automatic|manual|never","risk":"none|low|medium|high","impact":"<max 25 words, Turkish: what happens if deleted>"}]. \
+        Be conservative: if unsure, use "low" confidence and a higher risk.
         """
 
     private struct Item: Encodable {
@@ -26,6 +31,9 @@ public struct AIPrompt: Sendable, Identifiable {
         let ageDays: Int?
         let ruleConfidence: String
         let ruleReason: String
+        let ruleRegenerates: String
+        let ruleRisk: String
+        let ruleImpact: String
     }
 
     public init(findings: [Finding], home: URL, now: Date = Date()) {
@@ -36,7 +44,8 @@ public struct AIPrompt: Sendable, Identifiable {
                  sizeMB: (Double(f.size) / 1_048_576 * 10).rounded() / 10,
                  category: f.category.rawValue,
                  ageDays: f.lastModified.map { Int(now.timeIntervalSince($0) / 86_400) },
-                 ruleConfidence: String(describing: f.confidence), ruleReason: f.reason)
+                 ruleConfidence: String(describing: f.confidence), ruleReason: f.reason,
+                 ruleRegenerates: f.impact.regeneration.label, ruleRisk: f.impact.risk.label, ruleImpact: f.impact.note)
         }
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]

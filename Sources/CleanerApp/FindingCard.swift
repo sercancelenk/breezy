@@ -30,6 +30,11 @@ struct FindingCard: View {
                 Text(finding.reason)
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(Theme.textSecondary).lineLimit(1)
+                if !finding.impact.note.isEmpty {
+                    Text("Silersen: \(finding.impact.note)")
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(finding.impact.tint).lineLimit(2)
+                }
             }
             Spacer(minLength: 12)
             VStack(alignment: .trailing, spacing: 6) {
@@ -37,6 +42,7 @@ struct FindingCard: View {
                     .font(.system(size: 15, weight: .bold, design: .rounded)).monospacedDigit()
                     .foregroundStyle(Theme.textPrimary)
                 ConfidencePill(confidence: finding.confidence)
+                ImpactPill(impact: finding.impact)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
