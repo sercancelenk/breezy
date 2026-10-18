@@ -174,10 +174,10 @@ struct RootView: View {
                         if case .all = filter {
                             ForEach(model.grouped, id: \.category) { group in
                                 sectionHeader(group.category.title)
-                                ForEach(group.items) { FindingCard(finding: $0) }
+                                ForEach(group.items) { FindingCard(finding: $0) { aiPrompt = model.aiPrompt(for: $0) } }
                             }
                         } else {
-                            ForEach(visible) { FindingCard(finding: $0) }
+                            ForEach(visible) { FindingCard(finding: $0) { aiPrompt = model.aiPrompt(for: $0) } }
                         }
                     }
                     .padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 110)

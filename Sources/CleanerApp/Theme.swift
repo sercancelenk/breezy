@@ -176,6 +176,7 @@ struct ConfidencePill: View {
         .foregroundStyle(Theme.textPrimary)
         .padding(.horizontal, 9).padding(.vertical, 4)
         .background(confidence.tint.opacity(0.18), in: Capsule())
+        .help("Güven: bu öğenin silinmesinin güvenli olduğuna dair kural/AI güveni. Yüksek olanlar varsayılan seçili gelir; Düşük olanları dikkatle incele.")
     }
 }
 

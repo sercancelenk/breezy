@@ -130,6 +130,12 @@ public final class ScanViewModel {
         return nil
     }
 
+    /// Tek öğe için AI görüşü; öğe zaten yüksek güvenli olsa da sorulabilir.
+    public func aiPrompt(for finding: Finding) -> AIPrompt? {
+        guard settings.aiEnabled, settings.activeProfile != nil else { return nil }
+        return AIPrompt(findings: [finding], home: home)
+    }
+
     public func aiPrompt() -> AIPrompt? {
         guard settings.aiEnabled, settings.activeProfile != nil else { return nil }
         let candidates = AIScorer.candidates(from: findings)

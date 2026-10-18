@@ -254,3 +254,20 @@ private struct FailingSecrets: SecretStore {
     let broken = ScanViewModel(store: store, secrets: FailingSecrets(), home: t.url)
     #expect(!broken.setAPIKey("sk-2", for: id))
 }
+
+@MainActor @Test func singleItemAIQuestionSendsOnlyThatItemAndUpdatesOnlyIt() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let a = finding(t, "a", 300, .high), b = finding(t, "b", 200, .high)
+    let reply = #"{"content":[{"text":"[{\"i\":0,\"confidence\":\"medium\",\"reason\":\"AI görüşü\",\"regenerates\":\"manual\",\"risk\":\"medium\",\"impact\":\"Yeniden indirilir\"}]"}]}"#
+    let m = makeModel(t, findings: [a, b], http: StubHTTP(json: reply))
+    await m.scan()
+    #expect(m.aiPrompt(for: b) == nil)                         // AI kapalı
+    let profile = ProviderProfile.anthropic()
+    m.settings.profiles = [profile]; m.settings.activeProfileID = profile.id; m.settings.aiEnabled = true
+    let prompt = try #require(m.aiPrompt(for: b))              // yüksek güvenli olsa da sorulabilir
+    #expect(prompt.indexedIDs == [b.id])
+    await m.runAI(prompt)
+    let after = try #require(m.findings.first { $0.id == b.id })
+    #expect(after.reason == "AI görüşü" && after.impact.note == "Yeniden indirilir" && after.impact.fromAI)
+    #expect(m.findings.first { $0.id == a.id }?.reason == "r")
+}

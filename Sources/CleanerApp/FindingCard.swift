@@ -6,6 +6,7 @@ import CleanerCore
 struct FindingCard: View {
     @Environment(ScanViewModel.self) private var model
     let finding: Finding
+    var onAskAI: ((Finding) -> Void)?
     @State private var hovering = false
 
     private var isOn: Bool { model.selected.contains(finding.id) }
@@ -43,6 +44,15 @@ struct FindingCard: View {
                     .foregroundStyle(Theme.textPrimary)
                 ConfidencePill(confidence: finding.confidence)
                 ImpactPill(impact: finding.impact)
+                if let ask = onAskAI {
+                    Button { ask(finding) } label: { Label("AI'a sor", systemImage: "sparkles") }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.violet)
+                        .disabled(model.aiRunning || model.aiPrompt(for: finding) == nil)
+                        .help(model.aiPrompt(for: finding) == nil
+                              ? "AI kapalı: Ayarlar'dan aç" : "Bu öğe için AI görüşü al (önce gönderilecek metni görürsün)")
+                }
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 12)
