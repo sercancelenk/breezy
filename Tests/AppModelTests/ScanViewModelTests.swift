@@ -72,6 +72,8 @@ private func makeModel(_ t: TempDir, findings: [Finding], trasher: any Trasher =
     await bad.runAI(try #require(bad.aiPrompt()))
     #expect(bad.findings.first?.confidence == .medium)
     #expect(bad.aiStatus?.contains("kural tabanlı") == true)
+    #expect(bad.aiError?.contains("HTTP 500") == true)
+    #expect(m.aiError == nil)
 }
 
 private final class Box: @unchecked Sendable { var model: ScanViewModel? }

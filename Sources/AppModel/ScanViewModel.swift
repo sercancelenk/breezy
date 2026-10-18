@@ -17,6 +17,8 @@ public final class ScanViewModel {
     public private(set) var report: CleanReport?
     public private(set) var aiStatus: String?
     public private(set) var aiRunning = false
+    /// Son AI isteği başarısızsa nedeni; başarılıysa nil.
+    public private(set) var aiError: String?
     public private(set) var isLargeScanning = false
     private(set) var scanTask: Task<Void, Never>?
     private(set) var largeTask: Task<Void, Never>?
@@ -145,6 +147,7 @@ public final class ScanViewModel {
     public func runAI(_ prompt: AIPrompt) async {
         guard let profile = settings.activeProfile, !aiRunning else { return }
         aiRunning = true
+        aiError = nil
         defer { aiRunning = false }
         let provider = ProviderFactory.make(profile: profile, apiKey: secrets.secret(for: profile.id) ?? "", http: http)
         do {
@@ -153,6 +156,7 @@ public final class ScanViewModel {
             selected.subtract(findings.filter { !$0.impact.preselectable }.map(\.id))
             aiStatus = "AI \(prompt.indexedIDs.count) öğeyi değerlendirdi."
         } catch {
+            aiError = error.localizedDescription
             aiStatus = "AI kullanılamadı, kural tabanlı sonuçlar gösteriliyor (\(error.localizedDescription))."
         }
     }
