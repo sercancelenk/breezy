@@ -1,6 +1,6 @@
 import Foundation
 
-public enum Category: String, Sendable, Codable, CaseIterable {
+public enum FindingCategory: String, Sendable, Codable, CaseIterable {
     case cache, logs, homebrew, xcode, devArtifact
 
     public var title: String {
@@ -41,12 +41,12 @@ public struct Finding: Sendable, Identifiable, Hashable {
     public var id: String { url.path }
     public let url: URL
     public let size: Int64
-    public let category: Category
+    public let category: FindingCategory
     public var confidence: Confidence
     public var reason: String
     public let lastModified: Date?
 
-    public init(url: URL, size: Int64, category: Category, confidence: Confidence,
+    public init(url: URL, size: Int64, category: FindingCategory, confidence: Confidence,
                 reason: String, lastModified: Date?) {
         self.url = url
         self.size = size

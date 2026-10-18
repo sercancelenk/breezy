@@ -3,7 +3,7 @@ import CleanerCore
 import DiskScanner
 
 struct ChildrenRule: Rule {
-    let category: Category
+    let category: FindingCategory
     let relativeDirectory: String
     let excluding: Set<String>
     let confidence: Confidence

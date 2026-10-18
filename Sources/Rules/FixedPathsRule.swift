@@ -9,7 +9,7 @@ struct FixedPathsRule: Rule {
         let confidence: Confidence
     }
 
-    let category: Category
+    let category: FindingCategory
     let entries: [Entry]
 
     func scan(_ context: RuleContext) -> [Finding] {
