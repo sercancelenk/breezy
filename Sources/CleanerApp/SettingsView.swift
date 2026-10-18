@@ -61,9 +61,6 @@ struct AISettingsView: View {
             apiKey = model.settings.activeProfileID.map { model.apiKey(for: $0) } ?? ""
             testResult = ""
         }
-        .onChange(of: apiKey) {
-            if let id = model.settings.activeProfileID { model.setAPIKey(apiKey, for: id) }
-        }
     }
 
     private func profileBinding(_ id: UUID) -> Binding<ProviderProfile> {

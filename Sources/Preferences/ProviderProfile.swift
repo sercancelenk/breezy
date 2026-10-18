@@ -56,6 +56,8 @@ public struct ProviderProfile: Codable, Sendable, Identifiable, Equatable {
               responsePath: "output.text")
     }
 
+    static let credentialHeaders: Set<String> = ["authorization", "proxy-authorization", "x-api-key", "api-key"]
+
     /// Düzenleme için "Ad: değer" satırları; geçersiz satırlar atlanır.
     public var extraHeadersText: String {
         get { extraHeaders.sorted { $0.key < $1.key }.map { "\($0.key): \($0.value)" }.joined(separator: "\n") }
@@ -65,7 +67,8 @@ public struct ProviderProfile: Codable, Sendable, Identifiable, Equatable {
                 guard let c = line.firstIndex(of: ":") else { continue }
                 let k = line[..<c].trimmingCharacters(in: .whitespaces)
                 let v = line[line.index(after: c)...].trimmingCharacters(in: .whitespaces)
-                if !k.isEmpty { d[k] = v }
+                // Kimlik bilgileri ayar dosyasına (düz metin) yazılmasın; anahtar Keychain'dedir.
+                if !k.isEmpty, !Self.credentialHeaders.contains(k.lowercased()) { d[k] = v }
             }
             extraHeaders = d
         }

@@ -39,8 +39,7 @@ struct FindingCard: View {
                     .lineLimit(1).truncationMode(.middle)
                 Text(finding.reason).font(.system(size: 15)).foregroundStyle(Theme.textPrimary).lineLimit(2)
                 if !finding.impact.note.isEmpty {
-                    (Text("Silersen: ").bold().foregroundStyle(finding.impact.tint)
-                        + Text(finding.impact.note).foregroundStyle(Theme.textPrimary))
+                    Text("\(Text("Silersen: ").bold().foregroundStyle(finding.impact.tint))\(Text(finding.impact.note).foregroundStyle(Theme.textPrimary))")
                         .font(.system(size: 14)).lineLimit(3)
                 }
                 HStack(spacing: 6) {

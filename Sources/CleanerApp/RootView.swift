@@ -52,7 +52,12 @@ struct RootView: View {
             Button("Ayarları aç") { NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil) }
             Button("Tamam", role: .cancel) {}
         } message: { Text(aiNotice ?? "") }
-        .task { hasFDA = ScanViewModel.hasFullDiskAccess(home: FileManager.default.homeDirectoryForCurrentUser) }
+        .task { refreshFDA() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refreshFDA() }
+    }
+
+    private func refreshFDA() {
+        hasFDA = ScanViewModel.hasFullDiskAccess(home: FileManager.default.homeDirectoryForCurrentUser)
     }
 
     /// Profil yoksa/kapalıysa nedenini söyler; uygunsa önizleme penceresini açar.

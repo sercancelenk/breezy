@@ -1,0 +1,15 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build-test:
+    # macOS 26 + Xcode 26.x gerekir; runner imajı henüz yoksa self-hosted bir macOS 26 makine kullan.
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -q
+      - name: Test
+        run: swift test -q

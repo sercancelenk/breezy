@@ -45,3 +45,9 @@ import TestSupport
     let loaded = SettingsStore(fileURL: file).load(home: t.url)
     #expect(loaded.aiEnabled && loaded.scanRoots == ["/x"] && loaded.largeItemThresholdMB == 1024)
 }
+
+@Test func extraHeadersNeverStoreCredentials() {
+    var p = ProviderProfile.custom()
+    p.extraHeadersText = "X-Team: a\nAuthorization: Bearer sk-123\nx-api-key: k\nProxy-Authorization: z\nApi-Key: q"
+    #expect(p.extraHeaders == ["X-Team": "a"])
+}

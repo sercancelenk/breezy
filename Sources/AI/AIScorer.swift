@@ -67,7 +67,7 @@ public enum AIScorer {
             guard prompt.indexedIDs.indices.contains(v.i),
                   let level = Confidence(label: v.confidence),
                   var f = byID[prompt.indexedIDs[v.i]] else { continue }
-            let cap = Confidence(rawValue: min(f.confidence.rawValue + 1, Confidence.high.rawValue)) ?? .high
+            let cap = Confidence(rawValue: min(f.ruleConfidence.rawValue + 1, Confidence.high.rawValue)) ?? .high
             f.confidence = min(level, cap)
             if !v.reason.isEmpty { f.reason = v.reason }
             f.impact = merged(f.impact, v)

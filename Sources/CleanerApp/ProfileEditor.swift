@@ -73,7 +73,8 @@ struct ProfileEditor: View {
                     .font(.caption).foregroundStyle(keyIsSaved ? Theme.mint : Theme.textSecondary)
             }
             VStack(alignment: .leading) {
-                Text("Ekstra header'lar (Ad: değer)").font(.caption).foregroundStyle(Theme.textSecondary)
+                Text("Ekstra header'lar (Ad: değer) — ayar dosyasında düz metin saklanır; Authorization/x-api-key gibi kimlik başlıkları kabul edilmez, anahtarı yukarıya gir.")
+                    .font(.caption).foregroundStyle(Theme.textSecondary)
                 TextEditor(text: $headersText).font(.body.monospaced()).frame(height: 56)
             }
             Stepper("Zaman aşımı: \(Int(profile.timeout)) sn", value: $profile.timeout, in: 5...300, step: 5)

@@ -9,6 +9,11 @@ struct LargeItemsRule: Rule {
     static let transparent: Set<String> = [
         "Library", "Library/Application Support", "Library/Containers", "Library/Group Containers",
     ]
+    /// Paket (bundle) uzantıları: içi parçalanmadan tek öğe sayılır.
+    static let packageExtensions: Set<String> = [
+        "app", "photoslibrary", "sparsebundle", "vmwarevm", "pvm", "framework", "bundle", "plugin", "xcarchive",
+    ]
+    static let skipRelative: Set<String> = ["Library/Mobile Documents", "Library/Messages"]
     static let userFolders: Set<String> = ["Documents", "Desktop", "Downloads", "Movies", "Music", "Pictures"]
 
     private struct Frame {
@@ -37,7 +42,7 @@ struct LargeItemsRule: Rule {
                     let size = Int64(st.st_blocks) * 512
                     if size >= t { out.append(Self.finding(k, size: size, home: home, isFile: true)) }
                 case S_IFDIR:
-                    if Self.skipNames.contains(name) { continue }
+                    if Self.skipNames.contains(name) || Self.skipRelative.contains(childRel) { continue }
                     if Self.transparent.contains(childRel) { visit(k, rel: childRel) } else { units.append(k) }
                 default: continue
                 }
@@ -70,8 +75,21 @@ struct LargeItemsRule: Rule {
             let path = String(cString: ent.pointee.fts_path)
             switch Int32(ent.pointee.fts_info) {
             case FTS_D:
-                if Self.skipNames.contains((path as NSString).lastPathComponent) { fts_set(fts, ent, FTS_SKIP) }
-                else { stack.append(Frame(path: path)) }
+                let name = (path as NSString).lastPathComponent
+                if Self.skipNames.contains(name) { fts_set(fts, ent, FTS_SKIP); continue }
+                if Self.packageExtensions.contains((name as NSString).pathExtension.lowercased()) {
+                    fts_set(fts, ent, FTS_SKIP)
+                    let size = DirectorySizer.size(of: URL(fileURLWithPath: path), cancel: cancel)
+                    if !stack.isEmpty {
+                        stack[stack.count - 1].size += size
+                        if size >= t { stack[stack.count - 1].big = true }
+                    }
+                    if size >= t {
+                        out.append(Self.finding(URL(fileURLWithPath: path, isDirectory: true), size: size, home: home, isFile: false))
+                    }
+                    continue
+                }
+                stack.append(Frame(path: path))
             case FTS_F:
                 guard let s = ent.pointee.fts_statp, !stack.isEmpty else { continue }
                 let size = Int64(s.pointee.st_blocks) * 512

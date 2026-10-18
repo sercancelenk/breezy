@@ -124,3 +124,13 @@ private func withImpact(_ f: Finding, _ r: Regeneration, _ k: Risk, _ note: Stri
     let out = try AIScorer.parse(cut)
     #expect(out.map(\.i) == [0] && out[0].impact == "x } y")
 }
+
+@Test func repeatedAIRunsCannotRaiseConfidenceBeyondOneLevelAboveTheRule() throws {
+    let t = try TempDir(); defer { t.remove() }
+    let low = finding(t, "Library/Caches/a", .low)
+    let prompt = AIPrompt(findings: [low], home: t.url)
+    let high = [AIVerdict(i: 0, confidence: "high", reason: "x")]
+    let once = AIScorer.apply(high, to: [low], prompt: prompt)
+    let twice = AIScorer.apply(high, to: once, prompt: prompt)
+    #expect(once[0].confidence == .medium && twice[0].confidence == .medium)
+}

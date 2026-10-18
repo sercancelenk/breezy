@@ -78,3 +78,12 @@ private func f(_ t: TempDir, _ rel: String, _ size: Int64, _ c: FindingCategory)
     let large = out.filter { $0.category == .large }.map { "\($0.url.lastPathComponent):\($0.size)" }
     #expect(Set(large) == ["proj:300", "free:900"])
 }
+
+@Test func bundlesAreOneItemNotFragmentsAndICloudIsSkipped() throws {
+    let t = try TempDir(); defer { t.remove() }
+    try t.file("Pictures/Photos Library.photoslibrary/originals/3/a.heic", bytes: 120_000)
+    try t.file("Library/Mobile Documents/com~apple~CloudDocs/big.bin", bytes: 120_000)
+    try t.file("Test.app/Contents/Resources/r.bin", bytes: 120_000)
+    let out = scan(t).map { $0.url.path.replacingOccurrences(of: t.url.path + "/", with: "") }
+    #expect(Set(out) == ["Pictures/Photos Library.photoslibrary", "Test.app"])
+}

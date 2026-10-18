@@ -86,7 +86,8 @@ public struct RuleEngine: Sendable {
             let rest = f.size - inner
             guard rest >= threshold else { return nil }
             return Finding(url: f.url, size: rest, category: f.category, confidence: f.confidence,
-                           reason: f.reason, lastModified: f.lastModified, impact: f.impact)
+                           reason: f.reason, lastModified: f.lastModified, impact: f.impact,
+                           ruleConfidence: f.ruleConfidence)
         }
     }
 }

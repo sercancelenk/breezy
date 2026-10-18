@@ -24,6 +24,8 @@ public final class ScanViewModel {
     private(set) var scanTask: Task<Void, Never>?
     private(set) var largeTask: Task<Void, Never>?
     private var categoryTask: Task<Void, Never>?
+    /// Çöp Kutusu'na taşınan öğe kimlikleri; süren taramaların bayat sonuçlarını süzmek için.
+    private var trashLog: [String] = []
     public var settings: SettingsData
 
     @ObservationIgnored private let store: SettingsStore
@@ -91,14 +93,21 @@ public final class ScanViewModel {
             .map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
             .filter { $0.path == homePath || $0.path.hasPrefix(homePath + "/") }
         let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths),
-                              largeThreshold: Int64(max(0, settings.largeItemThresholdMB)) * 1_048_576)
-        let result = await engine.scan(ctx, gate: SafetyGate(home: home))
+                              largeThreshold: largeThresholdBytes)
+        let mark = trashLog.count
+        let raw = await engine.scan(ctx, gate: SafetyGate(home: home))
         if Task.isCancelled { phase = findings.isEmpty ? .idle : before; return }
+        let result = withoutTrashed(raw, since: mark)
         let keptLarge = findings.filter { $0.category == .large }
         findings = RuleEngine.reconcileLarge(result + keptLarge, threshold: largeThresholdBytes)
             .sorted { $0.size > $1.size }
         selected = Set(result.filter { $0.confidence == .high && $0.impact.preselectable }.map(\.id))
         phase = .ready
+    }
+
+    private func withoutTrashed(_ items: [Finding], since mark: Int) -> [Finding] {
+        let gone = Set(trashLog[mark...])
+        return gone.isEmpty ? items : items.filter { !gone.contains($0.id) }
     }
 
     private var largeThresholdBytes: Int64 { Int64(max(100, settings.largeItemThresholdMB)) * 1_048_576 }
@@ -129,8 +138,10 @@ public final class ScanViewModel {
             .filter { $0.path == homePath || $0.path.hasPrefix(homePath + "/") }
         let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths),
                               largeThreshold: largeThresholdBytes)
-        let result = await engine.scan(ctx, gate: SafetyGate(home: home), categories: [c])
+        let mark = trashLog.count
+        let raw = await engine.scan(ctx, gate: SafetyGate(home: home), categories: [c])
         if Task.isCancelled { return }
+        let result = withoutTrashed(raw, since: mark)
         let old = Set(findings.filter { $0.category == c }.map(\.id))
         let others = findings.filter { $0.category != c }
         findings = RuleEngine.reconcileLarge(others + result, threshold: largeThresholdBytes).sorted { $0.size > $1.size }
@@ -147,8 +158,10 @@ public final class ScanViewModel {
         isLargeScanning = true
         defer { isLargeScanning = false }
         let ctx = RuleContext(home: home, excludedPaths: Set(settings.excludedPaths), largeThreshold: largeThresholdBytes)
-        let result = await largeEngine.scan(ctx, gate: SafetyGate(home: home))
+        let mark = trashLog.count
+        let raw = await largeEngine.scan(ctx, gate: SafetyGate(home: home))
         if Task.isCancelled { return }
+        let result = withoutTrashed(raw, since: mark)
         let others = findings.filter { $0.category != .large }
         findings = RuleEngine.reconcileLarge(others + result.filter { $0.category == .large }, threshold: largeThresholdBytes)
             .sorted { $0.size > $1.size }
@@ -183,7 +196,8 @@ public final class ScanViewModel {
     }
 
     public func runAI(_ prompt: AIPrompt) async {
-        guard let profile = settings.activeProfile, !aiRunning else { return }
+        guard let profile = settings.activeProfile else { return }
+        guard !aiRunning else { aiError = "Başka bir AI isteği sürüyor; bitmesini bekle."; return }
         aiRunning = true
         aiError = nil
         defer { aiRunning = false }
@@ -208,6 +222,7 @@ public final class ScanViewModel {
         let r = await Cleaner(gate: SafetyGate(home: home), trasher: trasher).clean(selectedFindings)
         report = r
         let gone = Set(r.trashed.map(\.id))
+        trashLog += gone
         findings.removeAll { gone.contains($0.id) }
         selected.subtract(gone)
         phase = .done

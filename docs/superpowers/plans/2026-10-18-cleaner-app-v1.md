@@ -50,7 +50,7 @@ Spec'in ima ettiği ama başka bir yerde test edilmeyen durumlar; her satırın 
 - [ ] **Step 1: Repo ve paket iskeletini kur**
 
 ```bash
-cd /Users/sercancelenk/development/workspaces/projects/cleaner-app
+cd <repo>
 git init -q
 printf '.build/\nbuild/\n.swiftpm/\nDerivedData/\n*.xcuserstate\n' > .gitignore
 ```

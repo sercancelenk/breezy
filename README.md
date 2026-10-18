@@ -59,13 +59,13 @@ Bu bölümdeki her taahhüt kodda doğrulanabilir.
 
 | Taahhüt | Kodda nerede |
 |---|---|
-| AI kapalıyken **ağ bağlantısı yok**. Ağa yalnızca `AI` modülündeki `URLSessionHTTPClient` çıkar; başka hiçbir modül `URLSession` kullanmaz. Telemetri, analitik, hesap yok. | `Sources/AI/AIProvider.swift` |
+| AI kapalıyken **ağ bağlantısı yok** (yalnızca senin başlattığın "Bağlantıyı test et" bir "ping" isteği gönderir). Ağa yalnızca `AI` modülündeki `URLSessionHTTPClient` çıkar; başka hiçbir modül `URLSession` kullanmaz. Telemetri, analitik, hesap yok. | `Sources/AI/AIProvider.swift` |
 | AI'a yalnızca **gizlenmiş yol (`~/…`), boyut (MB), kategori, yaş (gün), kural güveni/gerekçesi/etkisi** gider. Dosya içeriği hiçbir yerde okunmaz. | `Sources/AI/AIPrompt.swift` |
-| Gönderilecek metin **önizlenir ve sen onaylamadan gitmez**; önizleme gönderilenin birebir aynısıdır. | `AIPrompt.preview`, `Sheets.swift` |
-| **API key yalnızca macOS Keychain'de** (`CleanerApp.ai`). Ayar dosyasında, loglarda ya da hata metinlerinde yer almaz. | `Sources/Preferences/SecretStore.swift` |
+| Gönderilecek metin **önizlenir ve sen onaylamadan gitmez**; önizleme gönderilen **metnin** (sistem + kullanıcı prompt'u) birebir aynısıdır; model adı, `max_tokens` gibi istek parametreleri ve ekstra başlıklar önizlemede yer almaz. | `AIPrompt.preview`, `Sheets.swift` |
+| **API key yalnızca macOS Keychain'de** (`CleanerApp.ai`). Ayar dosyasında, loglarda ya da hata metinlerinde yer almaz. "Ekstra header'lar" ve gövde şablonu ayar dosyasında düz metin saklanır; bu yüzden `Authorization`, `x-api-key` gibi kimlik başlıkları kabul edilmez. Sorgu-parametresi kimlik doğrulaması anahtarı URL'ye koyar; mümkünse Bearer/başlık kullan. | `Sources/Preferences/SecretStore.swift` |
 | **Kalıcı silme yok.** Yalnızca `NSWorkspace.recycle` (Çöp Kutusu). | `Sources/Cleaning/` |
 | **Korunan yollar silinemez:** ev dizini, `Desktop/Documents/Downloads/Pictures/Movies/Music/Library` kökleri, `Library/Caches`, `Library/Logs`, `Library/Application Support`, `.Trash`; ayrıca `.ssh`, `.gnupg`, `Library/Keychains`, iCloud (`Mobile Documents`), `Messages` alt ağaçları. Semboller çözülür, ev dizini dışı reddedilir. | `Sources/Safety/SafetyGate.swift` |
-| AI güveni **en fazla bir seviye** artırabilir, etkiyi yalnızca **kötüleştirebilir**, yeni yol üretemez. | `Sources/AI/AIScorer.swift` |
+| AI güveni kuralın verdiğinin **en fazla bir seviye** üstüne çıkarabilir (tekrar çalıştırmada da), etkiyi yalnızca **kötüleştirebilir**, yeni yol üretemez. | `Sources/AI/AIScorer.swift` |
 
 Yerel bir modelle (ör. Ollama) AI'ı kullanırsan **hiçbir veri Mac'inden çıkmaz**.
 
@@ -116,12 +116,14 @@ Gereksinimler: **macOS 26**, **Xcode 26.3** (Swift 6.2).
 ```bash
 git clone <repo-url> && cd cleaner-app
 swift build -q          # derle
-swift test -q           # 69 test
-scripts/make-app.sh     # release derle ve build/ altında .app paketi oluştur (ad-hoc imza)
-open build/*.app
+swift test -q           # 73 test
+scripts/make-app.sh     # evrensel (arm64 + x86_64) release derle, build/Ferah.app üret (ad-hoc imza)
+open build/Ferah.app
 ```
 
-> Ad-hoc imzalı uygulama yalnızca senin Mac'inde çalışır. Başkalarına dağıtmak için Developer ID ile imzalayıp notarize etmen gerekir (bkz. [Sınırlar](#sınırlar-ve-yol-haritası)).
+> Ad-hoc imzalı uygulama yalnızca senin Mac'inde çalışır. Başkalarına dağıtmak için Developer ID ile imzalayıp notarize etmen gerekir: `SIGN_ID="Developer ID Application: …" scripts/make-app.sh` (hardened runtime açık gelir; betik sonunda `notarytool` komutunu yazdırır).
+
+Yerel ağdaki `http://` sağlayıcılar (Ollama, LM Studio) çalışır; yerel olmayan düz `http://` adresleri macOS (ATS) tarafından engellenir, `https://` kullan.
 
 Ayarlar: `~/Library/Application Support/CleanerApp/settings.json` (anahtar içermez).
 
@@ -157,7 +159,7 @@ Tasarım belgesi: [`docs/superpowers/specs/`](docs/superpowers/specs), uygulama 
 - Yalnızca **ev dizinini** tarar (harici diskler ve sistem alanı kapsam dışı).
 - **v2:** Finder benzeri manuel gezgin + AI önerileri; "bunu gereksiz say" diyip saklama ve akıllı moda dahil etme.
 - **v3:** Docker/Podman kullanılmayan imajlar, öğrenme hafızası, Application Support derin analizi.
-- Dağıtım: Developer ID imzası ve notarization henüz yok (ad-hoc imza). `.dmg`/Homebrew cask planlanabilir.
+- Dağıtım: Developer ID imzası ve notarization henüz yapılmadı (betik hazır, hesap gerekir). `.dmg`/Homebrew cask planlanabilir. Uygulama simgesi henüz yok.
 - Hard link'ler boyutta iki kez sayılabilir.
 
 ## SSS
@@ -174,4 +176,4 @@ Tasarım belgesi: [`docs/superpowers/specs/`](docs/superpowers/specs), uygulama 
 **Docker/OrbStack imajı büyük çıktı, silebilir miyim?** Bu dosyaları (`Docker.raw`, `data.img`) silmek yerine Docker/OrbStack'in kendi temizleme komutlarını kullan; uygulama bunları "geri gelmez" diye işaretler.
 
 ## Lisans
-Henüz seçilmedi. Yayınlamadan önce bir lisans dosyası (`LICENSE`) ekle.
+Henüz seçilmedi; yayınlamadan önce bir `LICENSE` dosyası eklenmeli.

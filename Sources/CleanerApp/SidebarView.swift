@@ -46,7 +46,7 @@ struct SidebarView: View {
     private var channels: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text("Cleaner").font(.system(size: 17, weight: .heavy)).foregroundStyle(.white)
+                Text("Ferah").font(.system(size: 17, weight: .heavy)).foregroundStyle(.white)
                 Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)).foregroundStyle(muted)
                 Spacer()
             }

@@ -302,3 +302,39 @@ private struct CategoryRule: Rule {
     #expect(m.selected == [log.id])           // yalnızca yeni taranan kategorinin güvenli öğeleri seçilir
     #expect(m.categoryScanning == nil)
 }
+
+private final class Gate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var calls = 0
+    private var released = false
+    func enter() -> Int { lock.withLock { calls += 1; return calls } }
+    func release() { lock.withLock { released = true } }
+    var isReleased: Bool { lock.withLock { released } }
+}
+
+private struct GatedLargeRule: Rule {
+    let item: Finding
+    let gate: Gate
+    func scan(_ context: RuleContext) -> [Finding] {
+        if gate.enter() >= 2 { while !gate.isReleased { usleep(1_000) } }
+        return [item]
+    }
+}
+
+@MainActor @Test func largeScanFinishingAfterCleanDoesNotResurrectTrashedItems() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let big = largeFinding(t, "big", 5_000)
+    let gate = Gate()
+    let m = ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                          secrets: InMemorySecretStore(), engine: RuleEngine(rules: []),
+                          largeEngine: RuleEngine(rules: [GatedLargeRule(item: big, gate: gate)]),
+                          home: t.url, trasher: StubTrasher(), http: StubHTTP(json: "{}"))
+    await m.scanLarge()
+    m.selected = [big.id]
+    let second = Task { await m.scanLarge() }
+    while !m.isLargeScanning { await Task.yield() }
+    await m.clean()
+    gate.release()
+    await second.value
+    #expect(m.findings.isEmpty)
+}

@@ -46,12 +46,16 @@ public struct Finding: Sendable, Identifiable, Hashable {
     public let size: Int64
     public let category: FindingCategory
     public var confidence: Confidence
+    /// Kuralın verdiği güven; AI bunun en fazla bir seviye üstüne çıkabilir (tekrar çalıştırmalarda da).
+    public let ruleConfidence: Confidence
     public var reason: String
     public let lastModified: Date?
     public var impact: Impact
 
     public init(url: URL, size: Int64, category: FindingCategory, confidence: Confidence,
-                reason: String, lastModified: Date?, impact: Impact = .routine) {
+                reason: String, lastModified: Date?, impact: Impact = .routine,
+                ruleConfidence: Confidence? = nil) {
+        self.ruleConfidence = ruleConfidence ?? confidence
         self.impact = impact
         self.url = url
         self.size = size
