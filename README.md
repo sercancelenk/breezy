@@ -121,6 +121,14 @@ scripts/make-app.sh     # evrensel (arm64 + x86_64) release derle, build/Ferah.a
 open build/Ferah.app
 ```
 
+**Kaynaktan kurulum (Applications klasörüne):**
+```bash
+scripts/make-app.sh
+cp -R build/Ferah.app /Applications/
+open /Applications/Ferah.app
+```
+İlk açılışta macOS "doğrulanamadı" derse: uygulamaya sağ tıkla → **Aç**. Sonra Tam Disk Erişimi ver (aşağıda).
+
 > Ad-hoc imzalı uygulama yalnızca senin Mac'inde çalışır. Başkalarına dağıtmak için Developer ID ile imzalayıp notarize etmen gerekir: `SIGN_ID="Developer ID Application: …" scripts/make-app.sh` (hardened runtime açık gelir; betik sonunda `notarytool` komutunu yazdırır).
 
 Yerel ağdaki `http://` sağlayıcılar (Ollama, LM Studio) çalışır; yerel olmayan düz `http://` adresleri macOS (ATS) tarafından engellenir, `https://` kullan.
@@ -176,4 +184,4 @@ Tasarım belgesi: [`docs/superpowers/specs/`](docs/superpowers/specs), uygulama 
 **Docker/OrbStack imajı büyük çıktı, silebilir miyim?** Bu dosyaları (`Docker.raw`, `data.img`) silmek yerine Docker/OrbStack'in kendi temizleme komutlarını kullan; uygulama bunları "geri gelmez" diye işaretler.
 
 ## Lisans
-Henüz seçilmedi; yayınlamadan önce bir `LICENSE` dosyası eklenmeli.
+[MIT](LICENSE).
