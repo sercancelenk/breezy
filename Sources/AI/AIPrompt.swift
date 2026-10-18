@@ -6,7 +6,7 @@ public struct AIPrompt: Sendable, Identifiable {
     public let system: String
     public let user: String
     public let indexedIDs: [String]
-    public static let maxItems = 100
+    public static let maxItems = 40
 
     /// Kullanıcıya onay için gösterilen, gönderilecek verinin birebir kopyası.
     public var preview: String { "SYSTEM:\n\(system)\n\nUSER:\n\(user)" }

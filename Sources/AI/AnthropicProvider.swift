@@ -13,7 +13,7 @@ public struct AnthropicProvider: AIProvider {
     public func complete(system: String, prompt: String) async throws -> String {
         let body: [String: Any] = [
             "model": profile.model,
-            "max_tokens": 2048,
+            "max_tokens": 8192,
             "system": [["type": "text", "text": system, "cache_control": ["type": "ephemeral"]]],
             "messages": [["role": "user", "content": prompt]],
         ]

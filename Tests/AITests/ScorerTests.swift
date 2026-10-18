@@ -118,3 +118,9 @@ private func withImpact(_ f: Finding, _ r: Regeneration, _ k: Risk, _ note: Stri
     #expect(out.first { $0.id == plain.id }?.impact.userData == true)
     #expect(!prompt.system.contains("extension") && prompt.system.contains("only path and size"))
 }
+
+@Test func parseSalvagesCompleteObjectsFromTruncatedReply() throws {
+    let cut = #"[{"i":0,"confidence":"high","reason":"a, b","impact":"x } y"},{"i":1,"confidence":"me"#
+    let out = try AIScorer.parse(cut)
+    #expect(out.map(\.i) == [0] && out[0].impact == "x } y")
+}

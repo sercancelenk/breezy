@@ -23,14 +23,42 @@ public enum AIScorer {
     }
 
     public static func parse(_ text: String) throws -> [AIVerdict] {
-        guard let s = text.firstIndex(of: "["), let e = text.lastIndex(of: "]"), s < e else {
-            throw AIError.badResponse("JSON dizisi bulunamadı")
+        if let s = text.firstIndex(of: "["), let e = text.lastIndex(of: "]"), s < e,
+           let all = try? JSONDecoder().decode([AIVerdict].self, from: Data(text[s...e].utf8)) {
+            return all
         }
-        do {
-            return try JSONDecoder().decode([AIVerdict].self, from: Data(text[s...e].utf8))
-        } catch {
-            throw AIError.badResponse("JSON çözülemedi")
+        // Yanıt token sınırında kesilmiş olabilir: tamamlanmış nesneleri kurtar.
+        let salvaged = completeObjects(in: text)
+        guard !salvaged.isEmpty else { throw AIError.badResponse("JSON çözülemedi veya yanıt boş") }
+        return salvaged
+    }
+
+    private static func completeObjects(in text: String) -> [AIVerdict] {
+        var out: [AIVerdict] = []
+        var depth = 0, inString = false, escaped = false
+        var start: String.Index?
+        for i in text.indices {
+            let c = text[i]
+            if inString {
+                if escaped { escaped = false } else if c == "\\" { escaped = true } else if c == "\"" { inString = false }
+                continue
+            }
+            switch c {
+            case "\"": inString = true
+            case "{":
+                if depth == 0 { start = i }
+                depth += 1
+            case "}":
+                guard depth > 0 else { continue }
+                depth -= 1
+                if depth == 0, let s = start,
+                   let v = try? JSONDecoder().decode(AIVerdict.self, from: Data(text[s...i].utf8)) {
+                    out.append(v)
+                }
+            default: break
+            }
         }
+        return out
     }
 
     public static func apply(_ verdicts: [AIVerdict], to findings: [Finding], prompt: AIPrompt) -> [Finding] {
