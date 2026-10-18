@@ -229,6 +229,10 @@ private func largeFinding(_ t: TempDir, _ name: String, _ size: Int64) -> Findin
     let profile = ProviderProfile.anthropic()
     m.settings.profiles = [profile]
     #expect(m.aiUnavailableReason?.contains("kapalı") == true)
+    m.settings.profiles = []
+    #expect(m.aiUnavailableReason?.contains("profili yok") == true)
+    m.settings.profiles = [profile]
+    #expect(m.aiUnavailableReason(single: true)?.contains("kapalı") == true)
     let r = await m.testConnection(profile: profile, apiKey: "k")
     #expect(r.contains("başarılı"))
     #expect(m.settings.aiEnabled && m.settings.activeProfileID == profile.id)

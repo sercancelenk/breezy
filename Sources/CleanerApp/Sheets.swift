@@ -14,22 +14,22 @@ struct ConfirmSheet: View {
                 Image(systemName: "trash.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
                     .frame(width: 42, height: 42).background(Theme.aurora, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Çöp Kutusu'na taşı").font(.system(size: 20, weight: .bold, design: .rounded))
+                    Text("Çöp Kutusu'na taşı").font(.system(size: 20, weight: .bold))
                     Text("\(run.allowed.count) öğe • \(Format.bytes(run.totalBytes))")
-                        .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                        .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
                 }
             }
             Text("Öğeler silinmez, Çöp Kutusu'na taşınır ve oradan geri alınabilir. Alan, Çöp Kutusu'nu boşaltınca açılır.")
-                .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
             if !run.rejected.isEmpty {
                 Text("Güvenlik nedeniyle atlanacak: \(run.rejected.count) öğe")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Theme.coral)
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.coral)
             }
             let risky = run.allowed.filter { $0.impact.regeneration == .never || $0.impact.risk >= .medium }
             if !risky.isEmpty {
                 Label("\(risky.count) öğe geri gelmeyebilir veya uygulamayı etkileyebilir; listede işaretli.",
                       systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded)).foregroundStyle(Theme.amber)
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.amber)
             }
             ScrollView {
                 VStack(spacing: 6) {
@@ -43,7 +43,7 @@ struct ConfirmSheet: View {
                             Spacer()
                             Text(Format.bytes(f.size)).monospacedDigit().foregroundStyle(Theme.textSecondary)
                         }
-                        .font(.system(size: 13, design: .rounded))
+                        .font(.system(size: 13))
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .card()
                     }
@@ -86,10 +86,10 @@ struct AIPreviewSheet: View {
                     .frame(width: 42, height: 42).background(Theme.aurora, in: Circle())
                 VStack(alignment: .leading, spacing: 2) {
                     Text(stage == .answered ? "AI görüşü" : "AI'a gönderilecek veri")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold))
                     Text(stage == .answered ? "Yalnızca yol ve boyuta göre yorum; dosya içeriği görülmedi."
                                             : "Yalnızca metadata gider; dosya içeriği gönderilmez.")
-                        .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                        .font(.system(size: 13)).foregroundStyle(Theme.textSecondary)
                 }
             }
             switch stage {
@@ -104,13 +104,13 @@ struct AIPreviewSheet: View {
             case .running:
                 HStack(spacing: 12) {
                     ProgressView().controlSize(.small)
-                    Text("AI düşünüyor…").font(.system(size: 14, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                    Text("AI düşünüyor…").font(.system(size: 14)).foregroundStyle(Theme.textSecondary)
                 }
                 .frame(maxWidth: .infinity, minHeight: 120)
             case .answered:
                 if let err = model.aiError {
                     Label("AI kullanılamadı: \(err)", systemImage: "exclamationmark.triangle.fill")
-                        .font(.system(size: 13, design: .rounded)).foregroundStyle(Theme.coral)
+                        .font(.system(size: 13)).foregroundStyle(Theme.coral)
                         .frame(maxWidth: .infinity, alignment: .leading).padding(14).card()
                 } else {
                     ScrollView {
@@ -147,18 +147,18 @@ struct AIPreviewSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: f.category.symbol).foregroundStyle(f.category.tint)
-                Text(f.url.lastPathComponent).font(.system(size: 14, weight: .semibold, design: .rounded)).lineLimit(1)
+                Text(f.url.lastPathComponent).font(.system(size: 14, weight: .semibold)).lineLimit(1)
                 Spacer()
                 Text(Format.bytes(f.size)).monospacedDigit().foregroundStyle(Theme.textSecondary)
             }
-            Text(f.reason).font(.system(size: 13, design: .rounded))
+            Text(f.reason).font(.system(size: 13))
             if !f.impact.note.isEmpty {
-                Text("Silersen: \(f.impact.note)").font(.system(size: 13, design: .rounded)).foregroundStyle(f.impact.tint)
+                Text("Silersen: \(f.impact.note)").font(.system(size: 13)).foregroundStyle(f.impact.tint)
             }
             HStack(spacing: 8) {
                 ConfidencePill(confidence: f.confidence)
                 ImpactPill(impact: f.impact)
-                Text(f.impact.risk.title).font(.system(size: 11, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                Text(f.impact.risk.title).font(.system(size: 11)).foregroundStyle(Theme.textSecondary)
             }
         }
         .padding(12)

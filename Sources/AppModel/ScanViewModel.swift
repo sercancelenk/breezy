@@ -124,17 +124,22 @@ public final class ScanViewModel {
     }
 
     /// AI düğmesinin neden kapalı olduğu; kullanılabilirse nil.
-    public var aiUnavailableReason: String? {
-        if !settings.aiEnabled { return "AI desteği kapalı" }
-        if settings.activeProfile == nil { return "Aktif AI profili yok" }
-        if findings.isEmpty { return "Önce tarama yap" }
-        if AIScorer.candidates(from: findings).isEmpty { return "AI'ın değerlendireceği öğe yok" }
+    public var aiUnavailableReason: String? { aiUnavailableReason(single: false) }
+
+    /// `single`: tek öğe sorulurken aday filtresi aranmaz.
+    public func aiUnavailableReason(single: Bool) -> String? {
+        if settings.profiles.isEmpty { return "Tanımlı AI profili yok. Ayarlar → AI bölümünden bir profil ekleyip API key'ini gir." }
+        if !settings.aiEnabled { return "AI desteği kapalı. Ayarlar → AI'dan aç ya da bağlantı testini başarıyla çalıştır." }
+        if settings.activeProfile == nil { return "Aktif AI profili seçilmemiş. Ayarlar → AI → Aktif profil'den seç." }
+        if single { return nil }
+        if findings.isEmpty { return "Önce bir tarama yap; AI taranan öğeleri değerlendirir." }
+        if AIScorer.candidates(from: findings).isEmpty { return "AI'ın değerlendireceği belirsiz öğe yok; hepsi kural tarafından biliniyor. Tek bir öğe için kartındaki \"AI'a sor\"u kullanabilirsin." }
         return nil
     }
 
     /// Tek öğe için AI görüşü; öğe zaten yüksek güvenli olsa da sorulabilir.
     public func aiPrompt(for finding: Finding) -> AIPrompt? {
-        guard settings.aiEnabled, settings.activeProfile != nil else { return nil }
+        guard aiUnavailableReason(single: true) == nil else { return nil }
         return AIPrompt(findings: [finding], home: home)
     }
 

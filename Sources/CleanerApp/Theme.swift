@@ -16,16 +16,22 @@ extension NSColor {
     }
 }
 
-/// "Aurora" paleti: derin indigo zemin, violet → magenta → coral geçişi, sıcak amber ve serin teal vurgular.
+/// Slack benzeri palet: patlıcan moru kenar çubuğu, beyaz (koyu modda #1A1D21) ana alan, yeşil birincil buton,
+/// mavi seçim, kırmızı/sarı/camgöbeği vurgular.
 enum Theme {
-    static let ink = Color(hex: 0x1B1340)
-    static let indigo = Color(hex: 0x2A1B5E)
-    static let violet = Color(hex: 0x7C3AED)
-    static let magenta = Color(hex: 0xEC4899)
-    static let coral = Color(hex: 0xFB7185)
-    static let amber = Color(hex: 0xF59E0B)
-    static let teal = Color(hex: 0x14B8A6)
-    static let mint = Color(hex: 0x34D399)
+    static let aubergine = Color(hex: 0x3F0E40)
+    static let green = Color(hex: 0x007A5A)
+    static let blue = Color(hex: 0x1264A3)
+    static let selection = Color(hex: 0x1164A3)
+
+    // Başka dosyalarda kullanılan vurgu adları
+    static let violet = blue
+    static let coral = Color(hex: 0xE01E5A)
+    static let magenta = Color(hex: 0xE01E5A)
+    static let amber = Color(hex: 0xECB22E)
+    static let mint = Color(hex: 0x2EB67D)
+    static let teal = Color(hex: 0x36C5F0)
+    static let indigo = Color(hex: 0x611F69)
 
     static func dynamic(light: UInt32, dark: UInt32) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -33,18 +39,19 @@ enum Theme {
         })
     }
 
-    static var canvas: Color { dynamic(light: 0xF6F3FF, dark: 0x15112B) }
-    static var card: Color { dynamic(light: 0xFFFFFF, dark: 0x221B47) }
-    static var cardHover: Color { dynamic(light: 0xF0EAFF, dark: 0x2B2358) }
-    static var stroke: Color { dynamic(light: 0xE6DFFB, dark: 0x3A3070) }
-    static var textPrimary: Color { dynamic(light: 0x1B1340, dark: 0xF4F1FF) }
-    static var textSecondary: Color { dynamic(light: 0x6B6490, dark: 0xA9A2D3) }
+    static var canvas: Color { dynamic(light: 0xFFFFFF, dark: 0x1A1D21) }
+    static var card: Color { dynamic(light: 0xF8F8F8, dark: 0x222529) }
+    static var cardHover: Color { dynamic(light: 0xF2F2F2, dark: 0x2C2E33) }
+    static var stroke: Color { dynamic(light: 0xDDDDDD, dark: 0x3A3C41) }
+    static var textPrimary: Color { dynamic(light: 0x1D1C1D, dark: 0xD1D2D3) }
+    static var textSecondary: Color { dynamic(light: 0x616061, dark: 0xABABAD) }
+    static var sidebar: Color { dynamic(light: 0x3F0E40, dark: 0x19171D) }
+    static var rail: Color { dynamic(light: 0x350D36, dark: 0x121016) }
+    static var code: Color { dynamic(light: 0xE01E5A, dark: 0xF2668B) }
 
+    /// Eski adla kullanılan dolgu; artık düz patlıcan moru.
     static var aurora: LinearGradient {
-        LinearGradient(colors: [violet, magenta, coral], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-    static var sidebar: LinearGradient {
-        LinearGradient(colors: [indigo, ink], startPoint: .top, endPoint: .bottom)
+        LinearGradient(colors: [aubergine, indigo], startPoint: .top, endPoint: .bottom)
     }
 }
 
@@ -64,13 +71,13 @@ extension FindingCategory {
 
     var tint: Color {
         switch self {
-        case .cache: Theme.violet
+        case .cache: Theme.blue
         case .logs: Theme.amber
         case .homebrew: Theme.coral
         case .xcode: Theme.teal
-        case .devArtifact: Theme.magenta
+        case .devArtifact: Theme.mint
         case .large: Theme.coral
-        case .backup: Theme.violet
+        case .backup: Theme.indigo
         case .installers: Theme.teal
         }
     }
@@ -88,61 +95,35 @@ extension Confidence {
 
 // MARK: Buton stilleri
 
-/// Birincil buton: aurora gradient kapsül, parlama gölgesi, basınca küçülür.
+/// Birincil buton: Slack'in yeşil düz butonu.
 struct AuroraButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 14, weight: .semibold, design: .rounded))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 20).padding(.vertical, 10)
-            .background(Theme.aurora, in: Capsule())
-            .overlay(Capsule().strokeBorder(.white.opacity(hovering ? 0.45 : 0.2), lineWidth: 1))
-            .shadow(color: Theme.magenta.opacity(isEnabled ? 0.45 : 0), radius: hovering ? 16 : 10, y: 4)
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(isEnabled ? 1 : 0.4)
-            .animation(.spring(duration: 0.2), value: configuration.isPressed)
-            .animation(.easeOut(duration: 0.15), value: hovering)
+            .padding(.horizontal, 14).padding(.vertical, 7)
+            .background(hovering ? Color(hex: 0x148567) : Theme.green, in: RoundedRectangle(cornerRadius: 6))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.4)
             .onHover { hovering = $0 }
     }
 }
 
-/// İkincil buton: açık/koyu temaya uyumlu yumuşak kapsül.
+/// İkincil buton: çerçeveli, düz.
 struct SoftButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .medium, design: .rounded))
+            .font(.system(size: 13, weight: .semibold))
             .foregroundStyle(Theme.textPrimary)
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(hovering ? Theme.cardHover : Theme.card, in: Capsule())
-            .overlay(Capsule().strokeBorder(Theme.stroke, lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(isEnabled ? 1 : 0.4)
-            .animation(.spring(duration: 0.2), value: configuration.isPressed)
-            .onHover { hovering = $0 }
-    }
-}
-
-/// Gradient üstündeki buton: yarı saydam beyaz cam kapsül.
-struct GlassButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-    @State private var hovering = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16).padding(.vertical, 9)
-            .background(.white.opacity(hovering ? 0.32 : 0.2), in: Capsule())
-            .overlay(Capsule().strokeBorder(.white.opacity(0.35), lineWidth: 1))
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .opacity(isEnabled ? 1 : 0.45)
-            .animation(.spring(duration: 0.2), value: configuration.isPressed)
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(hovering ? Theme.cardHover : Theme.canvas, in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.stroke, lineWidth: 1))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.4)
             .onHover { hovering = $0 }
     }
 }
@@ -154,9 +135,8 @@ struct CardBackground: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(highlighted ? Theme.cardHover : Theme.card, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(Theme.stroke, lineWidth: 1))
-            .shadow(color: Theme.ink.opacity(0.06), radius: 8, y: 3)
+            .background(highlighted ? Theme.cardHover : Theme.card, in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.stroke, lineWidth: 1))
     }
 }
 
@@ -164,18 +144,32 @@ extension View {
     func card(highlighted: Bool = false) -> some View { modifier(CardBackground(highlighted: highlighted)) }
 }
 
+/// Slack'teki emoji tepkisi gibi çerçeveli küçük rozet.
+struct Chip<Leading: View>: View {
+    let text: String
+    var tint: Color = Theme.textSecondary
+    @ViewBuilder var leading: () -> Leading
+
+    var body: some View {
+        HStack(spacing: 5) {
+            leading()
+            Text(text)
+        }
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(Theme.textPrimary)
+        .padding(.horizontal, 8).padding(.vertical, 3)
+        .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(tint.opacity(0.45), lineWidth: 1))
+    }
+}
+
 struct ConfidencePill: View {
     let confidence: Confidence
 
     var body: some View {
-        HStack(spacing: 5) {
+        Chip(text: "Güven: \(confidence.title)", tint: confidence.tint) {
             Circle().fill(confidence.tint).frame(width: 7, height: 7)
-            Text(confidence.title)
         }
-        .font(.system(size: 11, weight: .semibold, design: .rounded))
-        .foregroundStyle(Theme.textPrimary)
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(confidence.tint.opacity(0.18), in: Capsule())
         .help("Güven: bu öğenin silinmesinin güvenli olduğuna dair kural/AI güveni. Yüksek olanlar varsayılan seçili gelir; Düşük olanları dikkatle incele.")
     }
 }
@@ -193,32 +187,38 @@ struct ImpactPill: View {
     let impact: Impact
 
     var body: some View {
-        HStack(spacing: 5) {
+        Chip(text: impact.userData ? "Kullanıcı verisi olabilir" : impact.regeneration.title, tint: impact.tint) {
             Image(systemName: impact.regeneration == .never ? "exclamationmark.triangle.fill" : "arrow.triangle.2.circlepath")
-            Text(impact.userData ? "Kullanıcı verisi olabilir" : impact.regeneration.title)
-            if impact.fromAI { Image(systemName: "sparkles") }
+                .font(.system(size: 10)).foregroundStyle(impact.tint)
+            if impact.fromAI { Image(systemName: "sparkles").font(.system(size: 10)).foregroundStyle(Theme.blue) }
         }
-        .font(.system(size: 11, weight: .semibold, design: .rounded))
-        .foregroundStyle(Theme.textPrimary)
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(impact.tint.opacity(0.18), in: Capsule())
     }
 }
 
-/// WhatsApp'taki seçim işareti gibi yuvarlak onay.
-struct CheckCircle: View {
+/// Boyut: Slack'in satır içi kod biçimi.
+struct SizeCode: View {
+    let bytes: Int64
+
+    var body: some View {
+        Text(Format.bytes(bytes))
+            .font(.system(size: 12, design: .monospaced))
+            .foregroundStyle(Theme.code)
+            .padding(.horizontal, 5).padding(.vertical, 1)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 3))
+            .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Theme.stroke, lineWidth: 1))
+    }
+}
+
+struct CheckBox: View {
     let on: Bool
 
     var body: some View {
         ZStack {
-            Circle().strokeBorder(on ? Color.clear : Theme.stroke, lineWidth: 2)
-            if on {
-                Circle().fill(Theme.aurora)
-                Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-            }
+            RoundedRectangle(cornerRadius: 4).fill(on ? Theme.green : Theme.canvas)
+            RoundedRectangle(cornerRadius: 4).strokeBorder(on ? Theme.green : Theme.textSecondary.opacity(0.6), lineWidth: 1.5)
+            if on { Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy)).foregroundStyle(.white) }
         }
-        .frame(width: 24, height: 24)
-        .animation(.spring(duration: 0.2), value: on)
+        .frame(width: 18, height: 18)
     }
 }
 
