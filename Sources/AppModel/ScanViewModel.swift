@@ -20,8 +20,10 @@ public final class ScanViewModel {
     /// Son AI isteği başarısızsa nedeni; başarılıysa nil.
     public private(set) var aiError: String?
     public private(set) var isLargeScanning = false
+    public private(set) var categoryScanning: FindingCategory?
     private(set) var scanTask: Task<Void, Never>?
     private(set) var largeTask: Task<Void, Never>?
+    private var categoryTask: Task<Void, Never>?
     public var settings: SettingsData
 
     @ObservationIgnored private let store: SettingsStore
@@ -105,6 +107,37 @@ public final class ScanViewModel {
         guard !isLargeScanning else { return }
         isLargeScanning = true
         largeTask = Task { await scanLarge() }
+    }
+
+    public func startCategoryScan(_ c: FindingCategory) {
+        guard categoryScanning == nil else { return }
+        if c == .large { startLargeScan(); return }
+        categoryScanning = c
+        categoryTask = Task { await scanCategory(c) }
+    }
+
+    public func cancelCategoryScan() { categoryTask?.cancel() }
+
+    /// Yalnızca bir kategoriyi yeniden tarar; diğer kategorilerin bulguları ve seçimleri korunur.
+    public func scanCategory(_ c: FindingCategory) async {
+        if c == .large { await scanLarge(); return }
+        categoryScanning = c
+        defer { categoryScanning = nil }
+        let homePath = home.standardizedFileURL.path
+        let roots = settings.scanRoots
+            .map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
+            .filter { $0.path == homePath || $0.path.hasPrefix(homePath + "/") }
+        let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths),
+                              largeThreshold: largeThresholdBytes)
+        let result = await engine.scan(ctx, gate: SafetyGate(home: home), categories: [c])
+        if Task.isCancelled { return }
+        let old = Set(findings.filter { $0.category == c }.map(\.id))
+        let others = findings.filter { $0.category != c }
+        findings = RuleEngine.reconcileLarge(others + result, threshold: largeThresholdBytes).sorted { $0.size > $1.size }
+        selected.subtract(old)
+        selected.formUnion(result.filter { $0.confidence == .high && $0.impact.preselectable }.map(\.id))
+        selected.formIntersection(Set(findings.map(\.id)))
+        if phase == .idle { phase = .ready }
     }
 
     public func cancelLargeScan() { largeTask?.cancel() }

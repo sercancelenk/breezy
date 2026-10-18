@@ -23,6 +23,10 @@ struct RootView: View {
         (model.phase == .ready || model.phase == .done) && !model.findings.isEmpty
     }
 
+    private var busy: Bool {
+        model.phase == .scanning || model.phase == .cleaning || model.categoryScanning != nil
+    }
+
     private var channelTitle: String {
         switch filter {
         case .all: "Genel bakış"
@@ -73,11 +77,23 @@ struct RootView: View {
             Button { model.startLargeScan() } label: { Label("Büyük öğeler", systemImage: "externaldrive") }
                 .buttonStyle(SoftButtonStyle())
                 .disabled(model.isLargeScanning || model.phase == .scanning || model.phase == .cleaning)
-            Button { model.startScan() } label: {
-                Label(model.phase == .idle ? "Taramayı başlat" : "Yeniden tara", systemImage: "arrow.clockwise")
+            if case .category(let c) = filter {
+                Button { model.startCategoryScan(c) } label: {
+                    Label("Sadece bunu tara", systemImage: "magnifyingglass")
+                }
+                .buttonStyle(AuroraButtonStyle())
+                .disabled(busy)
+                .help("Yalnızca “\(c.title)” kategorisini tarar; diğer sonuçlar korunur")
             }
-            .buttonStyle(AuroraButtonStyle())
-            .disabled(model.phase == .scanning || model.phase == .cleaning)
+            if filter == .all {
+                Button { model.startScan() } label: {
+                    Label(model.phase == .idle ? "Taramayı başlat" : "Yeniden tara", systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(AuroraButtonStyle()).disabled(busy)
+            } else {
+                Button { model.startScan() } label: { Label("Tümünü tara", systemImage: "arrow.clockwise") }
+                    .buttonStyle(SoftButtonStyle()).disabled(busy)
+            }
         }
         .padding(.horizontal, 20).padding(.top, 34).padding(.bottom, 10)
     }
@@ -92,6 +108,12 @@ struct RootView: View {
                     Button("Ayarları aç") {
                         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")!)
                     }.buttonStyle(SoftButtonStyle())
+                }
+            }
+            if let c = model.categoryScanning, c != .large {
+                banner(icon: "magnifyingglass", tint: Theme.blue, text: "“\(c.title)” taranıyor…") {
+                    ProgressView().controlSize(.small)
+                    Button("İptal") { model.cancelCategoryScan() }.buttonStyle(SoftButtonStyle())
                 }
             }
             if model.isLargeScanning {
@@ -145,7 +167,12 @@ struct RootView: View {
         case .idle where model.findings.isEmpty:
             emptyState(symbol: "externaldrive.badge.checkmark", title: "Henüz taranmadı",
                        message: "Gereksiz dosyaları bulmak için taramayı başlat.") {
-                Button("Taramayı başlat") { model.startScan() }.buttonStyle(AuroraButtonStyle())
+                HStack {
+                    Button("Taramayı başlat") { model.startScan() }.buttonStyle(AuroraButtonStyle())
+                    if case .category(let c) = filter {
+                        Button("Sadece “\(c.title)”") { model.startCategoryScan(c) }.buttonStyle(SoftButtonStyle())
+                    }
+                }
             }
         case .scanning, .cleaning:
             VStack(spacing: 12) {
@@ -160,7 +187,12 @@ struct RootView: View {
         default:
             if visible.isEmpty {
                 emptyState(symbol: "checkmark.circle.fill", title: "Temiz",
-                           message: "Burada önerilecek bir şey bulunamadı.") { EmptyView() }
+                           message: "Burada önerilecek bir şey bulunamadı.") {
+                    if case .category(let c) = filter {
+                        Button("Sadece “\(c.title)” kategorisini tara") { model.startCategoryScan(c) }
+                            .buttonStyle(SoftButtonStyle()).disabled(busy)
+                    }
+                }
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {

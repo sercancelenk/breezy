@@ -17,6 +17,8 @@ struct LargeItemsRule: Rule {
         var big = false
     }
 
+    var categories: Set<FindingCategory> { [.large] }
+
     func scan(_ context: RuleContext) -> [Finding] {
         let t = context.largeThreshold
         guard t > 0 else { return [] }

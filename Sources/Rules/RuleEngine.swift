@@ -54,16 +54,20 @@ public struct RuleEngine: Sendable {
         ])
     }
 
-    public func scan(_ context: RuleContext, gate: SafetyGate) async -> [Finding] {
+    public func covers(_ category: FindingCategory) -> Bool { rules.contains { $0.categories.contains(category) } }
+
+    /// `categories` verilirse yalnızca bu kategorileri üretebilen kurallar çalışır ve sonuç bu kategorilerle sınırlanır.
+    public func scan(_ context: RuleContext, gate: SafetyGate, categories: Set<FindingCategory>? = nil) async -> [Finding] {
+        let selected = categories.map { c in rules.filter { !$0.categories.isDisjoint(with: c) } } ?? rules
         let all = await withTaskGroup(of: [Finding].self) { group in
-            for rule in rules { group.addTask { rule.scan(context) } }
+            for rule in selected { group.addTask { rule.scan(context) } }
             var acc: [Finding] = []
             for await r in group { acc += r }
             return acc
         }
         var seen = Set<String>()
         let allowed = all.filter { f in
-            gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
+            (categories?.contains(f.category) ?? true) && gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
         }
         return Self.reconcileLarge(allowed, threshold: context.largeThreshold)
             .sorted { $0.size > $1.size }

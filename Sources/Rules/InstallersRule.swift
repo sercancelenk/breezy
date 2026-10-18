@@ -6,6 +6,8 @@ import DiskScanner
 struct InstallersRule: Rule {
     static let extensions: Set<String> = ["dmg", "pkg", "iso", "ipsw"]
 
+    var categories: Set<FindingCategory> { [.installers] }
+
     func scan(_ context: RuleContext) -> [Finding] {
         let dir = context.home.appendingPathComponent("Downloads", isDirectory: true)
         guard let e = FileManager.default.enumerator(at: dir, includingPropertiesForKeys: [.isRegularFileKey],

@@ -92,3 +92,24 @@ private struct FixedRule: Rule {
 private func awaitScan(_ engine: RuleEngine, _ t: TempDir) async -> [Finding] {
     await engine.scan(RuleContext(home: t.url), gate: SafetyGate(home: t.url))
 }
+
+private struct TaggedRule: Rule {
+    let category: FindingCategory
+    let findings: [Finding]
+    var categories: Set<FindingCategory> { [category] }
+    func scan(_ context: RuleContext) -> [Finding] { findings }
+}
+
+@Test func engineCanScanASingleCategoryOnly() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    func f(_ rel: String, _ c: FindingCategory) -> Finding {
+        Finding(url: t.url.appendingPathComponent(rel), size: 10, category: c, confidence: .high, reason: "r", lastModified: nil)
+    }
+    let engine = RuleEngine(rules: [
+        TaggedRule(category: .cache, findings: [f("Library/Caches/a", .cache)]),
+        TaggedRule(category: .logs, findings: [f("Library/Logs/b", .logs)]),
+    ])
+    let out = await engine.scan(RuleContext(home: t.url), gate: SafetyGate(home: t.url), categories: [.logs])
+    #expect(out.map { $0.url.lastPathComponent } == ["b"])
+    #expect(RuleEngine.standard().covers(.homebrew) && RuleEngine.standard().covers(.devArtifact))
+}

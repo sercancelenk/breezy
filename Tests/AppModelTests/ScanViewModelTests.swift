@@ -277,3 +277,28 @@ private struct FailingSecrets: SecretStore {
     #expect(after.reason == "AI görüşü" && after.impact.note == "Yeniden indirilir" && after.impact.fromAI)
     #expect(m.findings.first { $0.id == a.id }?.reason == "r")
 }
+
+private struct CategoryRule: Rule {
+    let category: FindingCategory
+    let findings: [Finding]
+    var categories: Set<FindingCategory> { [category] }
+    func scan(_ context: RuleContext) -> [Finding] { findings }
+}
+
+@MainActor @Test func categoryScanReplacesOnlyThatCategory() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let cache = finding(t, "c", 100, .high)
+    var log = finding(t, "l", 50, .high); log = Finding(url: log.url, size: 50, category: .logs, confidence: .high, reason: "r", lastModified: nil)
+    let m = ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                          secrets: InMemorySecretStore(),
+                          engine: RuleEngine(rules: [CategoryRule(category: .cache, findings: [cache]),
+                                                     CategoryRule(category: .logs, findings: [log])]),
+                          home: t.url, trasher: StubTrasher(), http: StubHTTP(json: "{}"))
+    await m.scan()
+    #expect(Set(m.findings.map(\.id)) == [cache.id, log.id])
+    m.selected = []
+    await m.scanCategory(.logs)
+    #expect(Set(m.findings.map(\.id)) == [cache.id, log.id])
+    #expect(m.selected == [log.id])           // yalnızca yeni taranan kategorinin güvenli öğeleri seçilir
+    #expect(m.categoryScanning == nil)
+}

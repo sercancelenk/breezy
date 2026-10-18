@@ -11,6 +11,8 @@ struct ChildrenRule: Rule {
     var impact: Impact = .routine
     var knownApps = false
 
+    var categories: Set<FindingCategory> { [category] }
+
     func scan(_ context: RuleContext) -> [Finding] {
         let dir = context.home.appendingPathComponent(relativeDirectory, isDirectory: true)
         guard let kids = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil)

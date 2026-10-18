@@ -43,6 +43,8 @@ struct DevArtifactRule: Rule {
     static let skipNames: Set<String> = [".git", ".hg", ".svn", "Library", ".Trash", "Applications",
                                           ".idea", ".vscode", "site-packages"]
 
+    var categories: Set<FindingCategory> { [.devArtifact] }
+
     func scan(_ context: RuleContext) -> [Finding] {
         let fm = FileManager.default
         // Bir kök altındaki iki seviyeyi ayrı iş birimi yap: tek büyük proje klasörü taramayı geciktirmesin.

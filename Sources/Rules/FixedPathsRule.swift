@@ -13,6 +13,8 @@ struct FixedPathsRule: Rule {
     let category: FindingCategory
     let entries: [Entry]
 
+    var categories: Set<FindingCategory> { [category] }
+
     func scan(_ context: RuleContext) -> [Finding] {
         entries.compactMap { e in
             guard !Task.isCancelled else { return nil }

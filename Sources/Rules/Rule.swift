@@ -20,5 +20,11 @@ public struct RuleContext: Sendable {
 }
 
 public protocol Rule: Sendable {
+    /// Bu kuralın üretebileceği kategoriler; kategori bazlı taramada ilgisiz kurallar çalıştırılmaz.
+    var categories: Set<FindingCategory> { get }
     func scan(_ context: RuleContext) -> [Finding]
+}
+
+public extension Rule {
+    var categories: Set<FindingCategory> { Set(FindingCategory.allCases) }
 }
