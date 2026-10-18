@@ -121,6 +121,15 @@ public final class ScanViewModel {
         if phase == .idle { phase = .ready }
     }
 
+    /// AI düğmesinin neden kapalı olduğu; kullanılabilirse nil.
+    public var aiUnavailableReason: String? {
+        if !settings.aiEnabled { return "AI desteği kapalı" }
+        if settings.activeProfile == nil { return "Aktif AI profili yok" }
+        if findings.isEmpty { return "Önce tarama yap" }
+        if AIScorer.candidates(from: findings).isEmpty { return "AI'ın değerlendireceği öğe yok" }
+        return nil
+    }
+
     public func aiPrompt() -> AIPrompt? {
         guard settings.aiEnabled, settings.activeProfile != nil else { return nil }
         let candidates = AIScorer.candidates(from: findings)
@@ -168,7 +177,12 @@ public final class ScanViewModel {
         let provider = ProviderFactory.make(profile: profile, apiKey: apiKey, http: http)
         do {
             let out = try await provider.complete(system: "Reply with the single word OK.", prompt: "ping")
-            return "Bağlantı başarılı: \(out.prefix(40))"
+            if settings.profiles.contains(where: { $0.id == profile.id }) {
+                settings.activeProfileID = profile.id
+                settings.aiEnabled = true
+                saveSettings()
+            }
+            return "Bağlantı başarılı: \(out.prefix(40)). AI etkinleştirildi."
         } catch {
             return "Bağlantı başarısız: \(error.localizedDescription)"
         }

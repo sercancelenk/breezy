@@ -69,6 +69,7 @@ struct RootView: View {
                     }
                     .buttonStyle(GlassButtonStyle())
                     .disabled(model.aiRunning || model.aiPrompt() == nil)
+                    .help(model.aiUnavailableReason ?? "Belirsiz öğeleri AI ile değerlendir")
                 }
             }
             .padding(.horizontal, 28).padding(.vertical, 22)
@@ -106,6 +107,12 @@ struct RootView: View {
                         Button(found ? "Yeniden tara" : "Büyük öğeleri tara") { model.startLargeScan() }
                             .buttonStyle(SoftButtonStyle())
                     }
+                }
+            }
+            if !model.settings.aiEnabled, model.settings.activeProfile != nil {
+                banner(icon: "sparkles", tint: Theme.violet, text: "AI profilin hazır ama AI desteği kapalı.") {
+                    Button("AI'yı aç") { model.settings.aiEnabled = true; model.saveSettings() }
+                        .buttonStyle(SoftButtonStyle())
                 }
             }
             if let status = model.aiStatus {

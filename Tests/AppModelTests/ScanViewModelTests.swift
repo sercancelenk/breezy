@@ -218,3 +218,22 @@ private func largeFinding(_ t: TempDir, _ name: String, _ size: Int64) -> Findin
                                                gate: SafetyGate(home: t.url))
     #expect(!out.contains { $0.category == .large })
 }
+
+@MainActor @Test func successfulConnectionTestActivatesAIImmediately() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let ok = StubHTTP(json: #"{"content":[{"text":"OK"}]}"#)
+    let m = makeModel(t, findings: [finding(t, "m", 10, .medium)], http: ok)
+    await m.scan()
+    let profile = ProviderProfile.anthropic()
+    m.settings.profiles = [profile]
+    #expect(m.aiUnavailableReason?.contains("kapalı") == true)
+    let r = await m.testConnection(profile: profile, apiKey: "k")
+    #expect(r.contains("başarılı"))
+    #expect(m.settings.aiEnabled && m.settings.activeProfileID == profile.id)
+    #expect(m.aiUnavailableReason == nil && m.aiPrompt() != nil)
+    let t2 = try TempDir(); defer { t2.remove() }
+    let bad = makeModel(t2, findings: [], http: StubHTTP(status: 401, json: "{}"))
+    bad.settings.profiles = [profile]
+    _ = await bad.testConnection(profile: profile, apiKey: "k")
+    #expect(!bad.settings.aiEnabled)
+}
