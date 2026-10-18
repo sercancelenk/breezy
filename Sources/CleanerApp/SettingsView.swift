@@ -48,7 +48,7 @@ struct AISettingsView: View {
                 }
             }
             if let i = activeIndex {
-                ProfileEditor(profile: $model.settings.profiles[i], apiKey: $apiKey, testResult: $testResult)
+                ProfileEditor(profile: profileBinding(model.settings.profiles[i].id), apiKey: $apiKey, testResult: $testResult)
             }
         }
         .formStyle(.grouped)
@@ -61,6 +61,13 @@ struct AISettingsView: View {
         .onChange(of: apiKey) {
             if let id = model.settings.activeProfileID { model.setAPIKey(apiKey, for: id) }
         }
+    }
+
+    private func profileBinding(_ id: UUID) -> Binding<ProviderProfile> {
+        Binding(get: { model.settings.profiles.first { $0.id == id } ?? .anthropic() },
+                set: { new in
+                    if let j = model.settings.profiles.firstIndex(where: { $0.id == id }) { model.settings.profiles[j] = new }
+                })
     }
 
     private func add(_ profile: ProviderProfile) {

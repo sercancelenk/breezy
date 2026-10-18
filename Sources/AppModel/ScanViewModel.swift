@@ -16,6 +16,8 @@ public final class ScanViewModel {
     public var selected: Set<String> = []
     public private(set) var report: CleanReport?
     public private(set) var aiStatus: String?
+    public private(set) var aiRunning = false
+    private(set) var scanTask: Task<Void, Never>?
     public var settings: SettingsData
 
     @ObservationIgnored private let store: SettingsStore
@@ -64,14 +66,26 @@ public final class ScanViewModel {
 
     // MARK: Akış
 
+    public func startScan() {
+        guard phase != .scanning else { return }
+        phase = .scanning
+        scanTask = Task { await scan() }
+    }
+
+    public func cancelScan() { scanTask?.cancel() }
+
     public func scan() async {
+        let before = phase == .scanning ? Phase.idle : phase
         phase = .scanning
         report = nil
         aiStatus = nil
-        let ctx = RuleContext(home: home,
-                              scanRoots: settings.scanRoots.map { URL(fileURLWithPath: $0, isDirectory: true) },
-                              excludedPaths: Set(settings.excludedPaths))
+        let homePath = home.standardizedFileURL.path
+        let roots = settings.scanRoots
+            .map { URL(fileURLWithPath: $0, isDirectory: true).standardizedFileURL }
+            .filter { $0.path == homePath || $0.path.hasPrefix(homePath + "/") }
+        let ctx = RuleContext(home: home, scanRoots: roots, excludedPaths: Set(settings.excludedPaths))
         let result = await engine.scan(ctx, gate: SafetyGate(home: home))
+        if Task.isCancelled { phase = findings.isEmpty ? .idle : before; return }
         findings = result
         selected = Set(result.filter { $0.confidence == .high }.map(\.id))
         phase = .ready
@@ -84,13 +98,16 @@ public final class ScanViewModel {
     }
 
     public func runAI(_ prompt: AIPrompt) async {
-        guard let profile = settings.activeProfile else { return }
+        guard let profile = settings.activeProfile, !aiRunning else { return }
+        aiRunning = true
+        defer { aiRunning = false }
         let provider = ProviderFactory.make(profile: profile, apiKey: secrets.secret(for: profile.id) ?? "", http: http)
         do {
-            findings = try await AIScorer.refine(prompt: prompt, findings: findings, provider: provider)
+            let text = try await provider.complete(system: prompt.system, prompt: prompt.user)
+            findings = AIScorer.apply(try AIScorer.parse(text), to: findings, prompt: prompt)
             aiStatus = "AI \(prompt.indexedIDs.count) öğeyi değerlendirdi."
         } catch {
-            aiStatus = "AI kullanılamadı, kural tabanlı sonuçlar gösteriliyor (\(error))."
+            aiStatus = "AI kullanılamadı, kural tabanlı sonuçlar gösteriliyor (\(error.localizedDescription))."
         }
     }
 
@@ -122,7 +139,7 @@ public final class ScanViewModel {
             let out = try await provider.complete(system: "Reply with the single word OK.", prompt: "ping")
             return "Bağlantı başarılı: \(out.prefix(40))"
         } catch {
-            return "Bağlantı başarısız: \(error)"
+            return "Bağlantı başarısız: \(error.localizedDescription)"
         }
     }
 }

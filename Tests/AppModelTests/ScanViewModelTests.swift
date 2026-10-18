@@ -72,3 +72,91 @@ private func makeModel(_ t: TempDir, findings: [Finding], trasher: any Trasher =
     #expect(bad.findings.first?.confidence == .medium)
     #expect(bad.aiStatus?.contains("kural tabanlı") == true)
 }
+
+private final class Box: @unchecked Sendable { var model: ScanViewModel? }
+
+private struct HookHTTP: HTTPClient {
+    let reply: String
+    let onSend: @Sendable () async -> Void
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        await onSend()
+        return (Data(reply.utf8), 200)
+    }
+}
+
+private struct FailingHTTP: HTTPClient {
+    func send(_ request: URLRequest) async throws -> (Data, Int) {
+        throw URLError(.notConnectedToInternet,
+                       userInfo: ["NSErrorFailingURLStringKey": "https://h/p?key=SECRET123"])
+    }
+}
+
+@MainActor @Test func aiResultDoesNotResurrectItemsCleanedWhileInFlight() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let med = finding(t, "m", 10, .medium), hi = finding(t, "h", 20, .high)
+    let box = Box()
+    let http = HookHTTP(reply: #"{"content":[{"text":"[{\"i\":0,\"confidence\":\"high\",\"reason\":\"ok\"}]"}]}"#) {
+        await box.model?.clean()
+    }
+    let m = makeModel(t, findings: [med, hi], http: http)
+    box.model = m
+    await m.scan()
+    let profile = ProviderProfile.anthropic()
+    m.settings.profiles = [profile]; m.settings.activeProfileID = profile.id; m.settings.aiEnabled = true
+    await m.runAI(try #require(m.aiPrompt()))
+    #expect(m.findings.map(\.id) == [med.id])
+    #expect(m.findings.first?.confidence == .high)
+    #expect(!m.aiRunning)
+}
+
+@MainActor @Test func errorTextsNeverContainQueryKey() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let med = finding(t, "m", 10, .medium)
+    let m = makeModel(t, findings: [med], http: FailingHTTP())
+    await m.scan()
+    let profile = ProviderProfile.anthropic()
+    m.settings.profiles = [profile]; m.settings.activeProfileID = profile.id; m.settings.aiEnabled = true
+    await m.runAI(try #require(m.aiPrompt()))
+    #expect(m.aiStatus?.contains("SECRET123") == false)
+    let r = await m.testConnection(profile: profile, apiKey: "k")
+    #expect(!r.contains("SECRET123"))
+}
+
+private struct BlockingRule: Rule {
+    func scan(_ context: RuleContext) -> [Finding] {
+        while !Task.isCancelled { usleep(1_000) }
+        return []
+    }
+}
+
+@MainActor @Test func cancelledScanPublishesNothing() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let m = ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                          secrets: InMemorySecretStore(), engine: RuleEngine(rules: [BlockingRule()]),
+                          home: t.url, trasher: StubTrasher(), http: StubHTTP(json: "{}"))
+    m.startScan()
+    #expect(m.phase == .scanning)
+    m.cancelScan()
+    await m.scanTask?.value
+    #expect(m.phase == .idle && m.findings.isEmpty)
+}
+
+private struct RootsRule: Rule {
+    let t: URL
+    func scan(_ context: RuleContext) -> [Finding] {
+        context.scanRoots.map {
+            Finding(url: t.appendingPathComponent("Library/Caches/\($0.lastPathComponent)"), size: 1,
+                    category: .cache, confidence: .high, reason: "r", lastModified: nil)
+        }
+    }
+}
+
+@MainActor @Test func scanRootsOutsideHomeAreIgnored() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let m = ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                          secrets: InMemorySecretStore(), engine: RuleEngine(rules: [RootsRule(t: t.url)]),
+                          home: t.url, trasher: StubTrasher(), http: StubHTTP(json: "{}"))
+    m.settings.scanRoots = [t.url.appendingPathComponent("in").path, "/Volumes/ext/out"]
+    await m.scan()
+    #expect(m.findings.map { $0.url.lastPathComponent } == ["in"])
+}

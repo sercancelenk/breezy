@@ -52,3 +52,14 @@ private struct FixedRule: Rule {
     let out = await RuleEngine(rules: rules).scan(ctx, gate: SafetyGate(home: t.url))
     #expect(out.map(\.size) == [30, 10])
 }
+
+@Test func excludedParentExcludesItsDescendants() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let child = Finding(url: t.url.appendingPathComponent("proj/node_modules"), size: 10, category: .devArtifact,
+                        confidence: .high, reason: "r", lastModified: nil)
+    let sibling = Finding(url: t.url.appendingPathComponent("proj2/node_modules"), size: 5, category: .devArtifact,
+                          confidence: .high, reason: "r", lastModified: nil)
+    let ctx = RuleContext(home: t.url, excludedPaths: [t.url.appendingPathComponent("proj").path])
+    let out = await RuleEngine(rules: [FixedRule(findings: [child, sibling])]).scan(ctx, gate: SafetyGate(home: t.url))
+    #expect(out.map(\.size) == [5])
+}

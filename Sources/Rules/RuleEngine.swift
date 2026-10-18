@@ -40,7 +40,9 @@ public struct RuleEngine: Sendable {
         }
         var seen = Set<String>()
         return all
-            .filter { gate.isAllowed($0.url) && !context.excludedPaths.contains($0.url.path) }
+            .filter { f in
+                gate.isAllowed(f.url) && !context.excludedPaths.contains { f.url.path == $0 || f.url.path.hasPrefix($0 + "/") }
+            }
             .sorted { $0.size > $1.size }
             .filter { seen.insert($0.id).inserted }
     }

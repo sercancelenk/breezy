@@ -59,7 +59,7 @@ struct RootView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 10) {
-                    Button { Task { await model.scan() } } label: {
+                    Button { model.startScan() } label: {
                         Label(model.phase == .idle ? "Taramayı başlat" : "Yeniden tara", systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(GlassButtonStyle())
@@ -68,7 +68,7 @@ struct RootView: View {
                         Label("AI ile iyileştir", systemImage: "sparkles")
                     }
                     .buttonStyle(GlassButtonStyle())
-                    .disabled(model.aiPrompt() == nil)
+                    .disabled(model.aiRunning || model.aiPrompt() == nil)
                 }
             }
             .padding(.horizontal, 28).padding(.vertical, 22)
@@ -127,13 +127,16 @@ struct RootView: View {
         case .idle:
             emptyState(symbol: "externaldrive.badge.checkmark", title: "Henüz taranmadı",
                        message: "Gereksiz dosyaları bulmak için taramayı başlat.") {
-                Button("Taramayı başlat") { Task { await model.scan() } }.buttonStyle(AuroraButtonStyle())
+                Button("Taramayı başlat") { model.startScan() }.buttonStyle(AuroraButtonStyle())
             }
         case .scanning, .cleaning:
             VStack(spacing: 14) {
                 ProgressView().controlSize(.large).tint(Theme.violet)
                 Text(model.phase == .scanning ? "Taranıyor…" : "Çöp Kutusu'na taşınıyor…")
                     .font(.system(size: 14, weight: .medium, design: .rounded)).foregroundStyle(Theme.textSecondary)
+                if model.phase == .scanning {
+                    Button("İptal") { model.cancelScan() }.buttonStyle(SoftButtonStyle())
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .ready, .done:

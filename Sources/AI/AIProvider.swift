@@ -13,10 +13,18 @@ public struct URLSessionHTTPClient: HTTPClient {
     }
 }
 
-public enum AIError: Error, Equatable {
+public enum AIError: Error, Equatable, LocalizedError {
     case invalidConfig(String)
     case http(Int)
     case badResponse(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidConfig(let m): "Geçersiz ayar: \(m)"
+        case .http(let c): "HTTP \(c)"
+        case .badResponse(let m): "Geçersiz yanıt: \(m)"
+        }
+    }
 }
 
 public protocol AIProvider: Sendable {
