@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swift build:*)",
+      "Bash(swift test:*)"
+    ],
+    "deny": [
+      "Read(./.build/**)",
+      "Read(./DerivedData/**)"
+    ]
+  }
+}
