@@ -18,6 +18,8 @@ let package = Package(
         .testTarget(name: "AITests", dependencies: ["AI", "Preferences", "TestSupport"]),
         .target(name: "Cleaning", dependencies: ["CleanerCore", "Safety"]),
         .testTarget(name: "CleaningTests", dependencies: ["Cleaning", "TestSupport"]),
+        .target(name: "AppModel", dependencies: ["CleanerCore", "Rules", "Safety", "Preferences", "AI", "Cleaning"]),
+        .testTarget(name: "AppModelTests", dependencies: ["AppModel", "Rules", "TestSupport"]),
         .target(name: "TestSupport", dependencies: ["AI", "Cleaning"]),
         .testTarget(name: "CleanerCoreTests", dependencies: ["CleanerCore", "TestSupport"]),
     ]
