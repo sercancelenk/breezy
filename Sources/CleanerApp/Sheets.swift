@@ -6,9 +6,10 @@ import CleanerCore
 struct ConfirmSheet: View {
     @Environment(ScanViewModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    var scope: ScanViewModel.Scope = .smart
 
     var body: some View {
-        let run = model.dryRun()
+        let run = model.dryRun(scope: scope)
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 Image(systemName: "trash.fill").font(.system(size: 18, weight: .semibold)).foregroundStyle(.white)
@@ -56,7 +57,7 @@ struct ConfirmSheet: View {
                 Button("İptal") { dismiss() }.buttonStyle(SoftButtonStyle()).keyboardShortcut(.cancelAction)
                 Button("Çöp Kutusu'na taşı") {
                     dismiss()
-                    Task { await model.clean() }
+                    Task { await model.clean(scope: scope) }
                 }
                 .buttonStyle(AuroraButtonStyle())
                 .keyboardShortcut(.defaultAction)

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppModel
+import Preferences
 
 @main
 struct CleanerMain: App {
@@ -9,8 +10,9 @@ struct CleanerMain: App {
         WindowGroup {
             RootView()
                 .environment(model)
-                .frame(minWidth: 940, minHeight: 600)
+                .frame(minWidth: 1040, minHeight: 740)
                 .tint(Theme.violet)
+                .preferredColorScheme(model.settings.appearance.colorScheme)
         }
         .windowStyle(.hiddenTitleBar)
 
@@ -18,6 +20,18 @@ struct CleanerMain: App {
             SettingsView()
                 .environment(model)
                 .tint(Theme.violet)
+                .preferredColorScheme(model.settings.appearance.colorScheme)
+        }
+    }
+}
+
+extension AppearanceMode {
+    /// nil = sistem görünümünü takip et.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 }

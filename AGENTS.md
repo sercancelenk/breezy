@@ -1,6 +1,6 @@
-# Cleaner App
+# Breezy (Cleaner App)
 
-Kişisel macOS temizleyici: gereksiz dosyaları bulur, onayla Çöp Kutusu'na taşır.
+Kişisel macOS temizleyici (uygulama adı Breezy, SwiftPM paketi/modülleri `Cleaner*`): gereksiz dosyaları bulur, onayla Çöp Kutusu'na taşır.
 Spec: `docs/superpowers/specs/2026-10-18-cleaner-app-design.md` (tek doğruluk kaynağı).
 
 ## Stack
@@ -13,7 +13,7 @@ CleanerCore, DiskScanner, Rules, Safety, AI, Preferences, Cleaning, AppModel, Cl
 - Derle: `swift build -q`
 - Test: `swift test -q`
 - Tek test: `swift test -q --filter <TestAdı>`
-- Paketle: `scripts/make-app.sh` → `build/Cleaner.app` (ad-hoc imza; her yeniden derlemede Tam Disk Erişimi tekrar istenebilir)
+- Paketle: `scripts/make-app.sh` → evrensel `build/Breezy.app` (ad-hoc imza; her yeniden derlemede Tam Disk Erişimi tekrar istenebilir)
 
 ## Kurallar
 - Silme yalnızca `Safety` geçidinden geçer. Kalıcı silme yok, `NSWorkspace.recycle` kullan.
@@ -21,7 +21,9 @@ CleanerCore, DiskScanner, Rules, Safety, AI, Preferences, Cleaning, AppModel, Cl
 - API key yalnızca Keychain'de. Loga, teste, fixture'a yazma.
 - Yeni kural = yeni `Rule` + fixture'lı birim testi. Önce test yaz.
 - Mevcut kod stilini ve isimlendirmeyi koru. Gereksiz soyutlama, yorum, refactor ekleme.
-- Kapsam dışı (v1): manuel gezgin, Docker/Podman, öğrenme hafızası, Application Support analizi.
+- Ağ koduna yalnızca `AI` modülünde izin var (`URLSessionHTTPClient`); başka modüle ağ, telemetri, analitik ekleme.
+- Yeni `Rule`: `categories`, `impact` (geri gelme/risk/not) ve gerekirse `KnownApps` girdisi ver. Geri gelmeyen, kullanıcı verisi ve büyük öğeler asla önceden seçilmez; AI etkiyi yalnızca kötüleştirebilir, güveni kuralın en fazla +1 üstüne çıkarır.
+- Kapsam dışı: manuel gezgin (v2), Docker/Podman, öğrenme hafızası, Application Support analizi (v3).
 
 ## Çıktı ve token tasarrufu
 - Cevaplar kısa olsun: ne değişti, nerede, sonraki adım. Kodu tekrar yazma, diff'i anlatma.

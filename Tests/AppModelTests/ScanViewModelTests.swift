@@ -193,7 +193,8 @@ private func largeFinding(_ t: TempDir, _ name: String, _ size: Int64) -> Findin
     let cache = finding(t, "c", 100, .high)
     let m = makeModel(t, findings: [cache], large: [largeFinding(t, "big", 5_000)])
     await m.scanLarge()                       // akıllı tarama yapılmadan da çalışır
-    #expect(m.findings.map(\.category) == [.large] && m.selected.isEmpty && m.phase == .ready)
+    #expect(m.findings.map(\.category) == [.large] && m.selected.isEmpty && m.largeScanned)
+    #expect(m.phase == .idle)                 // akıllı tarama ayrı kapsam: durumu değişmez
     await m.scan()                            // akıllı tarama büyük öğeleri silmez
     #expect(Set(m.findings.map(\.category)) == [.cache, .large])
     #expect(m.selected == [cache.id])
@@ -333,8 +334,54 @@ private struct GatedLargeRule: Rule {
     m.selected = [big.id]
     let second = Task { await m.scanLarge() }
     while !m.isLargeScanning { await Task.yield() }
-    await m.clean()
+    await m.clean(scope: .large)
     gate.release()
     await second.value
     #expect(m.findings.isEmpty)
+}
+
+@MainActor private func scopedModel(_ t: TempDir, trasher: any Trasher = StubTrasher()) async -> (ScanViewModel, Finding, Finding) {
+    let cache = finding(t, "c", 100, .high)
+    let big = largeFinding(t, "big", 5_000)
+    let m = ScanViewModel(store: SettingsStore(fileURL: t.url.appendingPathComponent("s.json")),
+                          secrets: InMemorySecretStore(),
+                          engine: RuleEngine(rules: [StubRule(findings: [cache])]),
+                          largeEngine: RuleEngine(rules: [StubRule(findings: [big])]),
+                          home: t.url, trasher: trasher, http: StubHTTP(json: "{}"))
+    await m.scan()
+    await m.scanLarge()
+    return (m, cache, big)
+}
+
+@MainActor @Test func smartAndLargeScopesAreSeparate() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let (m, cache, big) = await scopedModel(t)
+    m.selected = [cache.id, big.id]
+    #expect(m.smartFindings.map(\.id) == [cache.id] && m.largeFindings.map(\.id) == [big.id])
+    #expect(m.totalBytes == 100 && m.largeBytes == 5_000)
+    #expect(m.grouped.map(\.category) == [.cache])
+    #expect(m.selectedFindings.map(\.id) == [cache.id] && m.selectedLargeFindings.map(\.id) == [big.id])
+    #expect(m.selectedBytes == 100 && m.selectedLargeBytes == 5_000)
+}
+
+@MainActor @Test func cleaningOneScopeLeavesTheOthersSelectionAlone() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let (m, cache, big) = await scopedModel(t)
+    m.selected = [cache.id, big.id]
+    #expect(m.dryRun(scope: .large).allowed.map(\.id) == [big.id])
+    await m.clean(scope: .large)
+    #expect(m.findings.map(\.id) == [cache.id] && m.selected == [cache.id])
+    let (m2, cache2, big2) = await scopedModel(t)
+    m2.selected = [cache2.id, big2.id]
+    await m2.clean()
+    #expect(m2.findings.map(\.id) == [big2.id] && m2.selected == [big2.id])
+}
+
+@MainActor @Test func aiPromptsAreScoped() async throws {
+    let t = try TempDir(); defer { t.remove() }
+    let (m, _, big) = await scopedModel(t)
+    let profile = ProviderProfile.anthropic()
+    m.settings.profiles = [profile]; m.settings.activeProfileID = profile.id; m.settings.aiEnabled = true
+    #expect(m.aiPrompt(in: .large)?.indexedIDs == [big.id])
+    #expect(m.aiPrompt()?.indexedIDs.contains(big.id) != true)
 }

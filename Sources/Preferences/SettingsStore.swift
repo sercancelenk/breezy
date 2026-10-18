@@ -1,5 +1,17 @@
 import Foundation
 
+public enum AppearanceMode: String, Codable, Sendable, CaseIterable {
+    case system, light, dark
+
+    public var title: String {
+        switch self {
+        case .system: "Sistem"
+        case .light: "Açık"
+        case .dark: "Koyu"
+        }
+    }
+}
+
 public struct SettingsData: Codable, Sendable, Equatable {
     public var profiles: [ProviderProfile]
     public var activeProfileID: UUID?
@@ -8,12 +20,14 @@ public struct SettingsData: Codable, Sendable, Equatable {
     public var excludedPaths: [String]
     /// MB; 0 = büyük öğe taraması kapalı.
     public var largeItemThresholdMB: Int
+    public var appearance: AppearanceMode
 
     public init(profiles: [ProviderProfile] = [], activeProfileID: UUID? = nil, aiEnabled: Bool = false,
-                scanRoots: [String] = [], excludedPaths: [String] = [], largeItemThresholdMB: Int = 1024) {
+                scanRoots: [String] = [], excludedPaths: [String] = [], largeItemThresholdMB: Int = 1024,
+                appearance: AppearanceMode = .system) {
         self.profiles = profiles; self.activeProfileID = activeProfileID; self.aiEnabled = aiEnabled
         self.scanRoots = scanRoots; self.excludedPaths = excludedPaths
-        self.largeItemThresholdMB = largeItemThresholdMB
+        self.largeItemThresholdMB = largeItemThresholdMB; self.appearance = appearance
     }
 
     public init(from decoder: Decoder) throws {
@@ -24,6 +38,7 @@ public struct SettingsData: Codable, Sendable, Equatable {
         scanRoots = try c.decodeIfPresent([String].self, forKey: .scanRoots) ?? []
         excludedPaths = try c.decodeIfPresent([String].self, forKey: .excludedPaths) ?? []
         largeItemThresholdMB = try c.decodeIfPresent(Int.self, forKey: .largeItemThresholdMB) ?? 1024
+        appearance = try c.decodeIfPresent(AppearanceMode.self, forKey: .appearance) ?? .system
     }
 
     public var activeProfile: ProviderProfile? { profiles.first { $0.id == activeProfileID } }

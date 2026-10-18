@@ -7,6 +7,7 @@ struct SettingsView: View {
         TabView {
             AISettingsView().tabItem { Label("AI", systemImage: "sparkles") }
             ScanSettingsView().tabItem { Label("Tarama", systemImage: "folder.fill") }
+            AppearanceSettingsView().tabItem { Label("Görünüm", systemImage: "circle.lefthalf.filled") }
         }
         .frame(width: 620, height: 600)
         .padding()
@@ -134,5 +135,26 @@ struct PathListEditor: View {
             }
             .buttonStyle(SoftButtonStyle())
         }
+    }
+}
+
+struct AppearanceSettingsView: View {
+    @Environment(ScanViewModel.self) private var model
+
+    var body: some View {
+        @Bindable var model = model
+        Form {
+            Section("Tema") {
+                Picker("Görünüm", selection: $model.settings.appearance) {
+                    ForEach(AppearanceMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                Text("Sistem: macOS'in açık/koyu ayarını takip eder.")
+                    .font(.caption).foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
+        .onChange(of: model.settings) { model.saveSettings() }
     }
 }

@@ -1,15 +1,17 @@
-# Ferah
+# Breezy
 
 **Mac'inin diskini güvenle ferahlat.** Gereksiz dosyaları bulur, silince ne olacağını açıklar ve yalnızca senin onayınla Çöp Kutusu'na taşır. Verilerin bu Mac'ten çıkmaz.
 
-> 🇬🇧 **English summary:** Ferah is a native, privacy-first macOS disk cleaner (SwiftUI, macOS 26). It finds caches, logs, build artifacts, large forgotten items and more; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes (never file contents) and only after you approve a preview of the exact message. See [Privacy & security](#gizlilik-ve-güvenlik) and [Build](#derleme-ve-çalıştırma).
+> 🇬🇧 **English summary:** Breezy is a native, privacy-first macOS disk cleaner (SwiftUI, macOS 26). It finds caches, logs, build artifacts, large forgotten items and more; explains what happens if you delete each one; and only ever moves things to the Trash after you approve. It makes no network connections unless you enable the optional AI advisor, which only ever sees redacted paths and sizes (never file contents) and only after you approve a preview of the exact message. See [Privacy & security](#gizlilik-ve-güvenlik) and [Build](#derleme-ve-çalıştırma).
+
+![Breezy ana ekran](docs/images/image.png)
 
 Tanıtım sayfası: [`docs/index.html`](docs/index.html)
 
 ---
 
 ## İçindekiler
-1. [Neden Ferah?](#neden-ferah)
+1. [Neden Breezy?](#neden-breezy)
 2. [Özellikler](#özellikler)
 3. [Nasıl çalışır?](#nasıl-çalışır)
 4. [Gizlilik ve güvenlik](#gizlilik-ve-güvenlik)
@@ -26,22 +28,23 @@ Tanıtım sayfası: [`docs/index.html`](docs/index.html)
 
 ---
 
-## Neden Ferah?
+## Neden Breezy?
 Mac'ler zamanla doluyor: uygulama önbellekleri, loglar, `node_modules`, Maven/Gradle çıktıları, Xcode derleme dosyaları, unutulmuş yedekler ve onlarca GB'lık model/imaj dosyaları. Bunları elle bulmak zahmetli, otomatik temizleyicilere güvenmek ise riskli: *neyi sildiğini ve silince ne olacağını* çoğu söylemez, çoğu da verini bir sunucuya gönderir.
 
-Ferah üç şeye odaklanır:
+Breezy üç şeye odaklanır:
 - **Güvenlik:** Kalıcı silme yok, korunan klasörler asla silinemez, her silmeden önce önizleme.
 - **Açıklama:** Her bulgu için "geri gelir mi, uygulama bozulur mu, kişisel verin olabilir mi" yorumu.
 - **Gizlilik:** Her şey yerelde. İsteğe bağlı AI yalnızca yol ve boyut görür ve her gönderimi sen onaylarsın.
 
 ## Özellikler
 - **Akıllı tarama (hızlı):** Önbellekler, loglar, Homebrew, Xcode, geliştirici artifact'ları (`node_modules`, `target`, `build`, `.gradle`, Python `venv`/`__pycache__`), iOS/iPad yedekleri, Downloads'taki kurulum dosyaları. Gerçek bir disk üzerinde ~6 sn.
-- **Büyük öğeler taraması (ayrı, ev dizini):** Eşiğin (100 MB / 500 MB / **1 GB** / 5 GB) üzerindeki klasör ve dosyaları, kural bilmese bile bulur. Önce günlük klasörlerin (Belgeler, Masaüstü, İndirilenler…) taranır, `Library` en sona kalır. Hiçbiri otomatik seçilmez.
+- **Büyük öğeler (ayrı bölüm, ev dizini):** Kenar çubuğunda **Keşfet → Büyük öğeler**; kendi taraması, eşiği, listesi, seçimi ve temizliği vardır, "Genel bakış" toplamlarına ve seçimine karışmaz.
+   Eşiğin (100 MB / 500 MB / **1 GB** / 5 GB) üzerindeki klasör ve dosyaları, kural bilmese bile bulur. Önce günlük klasörlerin (Belgeler, Masaüstü, İndirilenler…) taranır, `Library` en sona kalır. Hiçbiri otomatik seçilmez.
 - **Kategori bazlı tarama:** Kenar çubuğunda bir kategori seç → **"Sadece bunu tara"**; diğer sonuçlar ve seçimler korunur.
 - **"Silersen ne olur?" analizi:** Her bulguda geri gelme durumu (kendiliğinden / komutla / geri gelmez), risk ve açıklama. Bilinen uygulamalar için (JetBrains, Chrome, Spotify, Playwright, CocoaPods…) uygulamaya özel notlar.
 - **AI danışmanı (isteğe bağlı):** Toplu iyileştirme veya her kartta **"AI'a sor"**. Anthropic, OpenAI uyumlu (Ollama, LiteLLM, Azure…) veya şirket içi özel HTTP LLM.
 - **Güvenli temizlik:** Önce dry-run, sonra Çöp Kutusu'na taşıma. Geri alınabilir.
-- **Modern arayüz:** Slack'ten esinlenen düzen; açık ve koyu mod.
+- **Modern arayüz:** Slack'ten esinlenen düzen; açık ve koyu mod (Ayarlar → Görünüm: Sistem / Açık / Koyu).
 
 ## Nasıl çalışır?
 ```
@@ -116,16 +119,16 @@ Gereksinimler: **macOS 26**, **Xcode 26.3** (Swift 6.2).
 ```bash
 git clone <repo-url> && cd cleaner-app
 swift build -q          # derle
-swift test -q           # 73 test
-scripts/make-app.sh     # evrensel (arm64 + x86_64) release derle, build/Ferah.app üret (ad-hoc imza)
-open build/Ferah.app
+swift test -q           # 77 test
+scripts/make-app.sh     # evrensel (arm64 + x86_64) release derle, build/Breezy.app üret (ad-hoc imza)
+open build/Breezy.app
 ```
 
 **Kaynaktan kurulum (Applications klasörüne):**
 ```bash
 scripts/make-app.sh
-cp -R build/Ferah.app /Applications/
-open /Applications/Ferah.app
+cp -R build/Breezy.app /Applications/
+open /Applications/Breezy.app
 ```
 İlk açılışta macOS "doğrulanamadı" derse: uygulamaya sağ tıkla → **Aç**. Sonra Tam Disk Erişimi ver (aşağıda).
 
@@ -161,14 +164,44 @@ Tasarım belgesi: [`docs/superpowers/specs/`](docs/superpowers/specs), uygulama 
 ## Geliştirme
 - Önce test (Swift Testing: `@Test`, `#expect`), sonra kod. Yeni kural = yeni `Rule` + fixture'lı birim testi.
 - `AGENTS.md` / `CLAUDE.md` AI kod asistanları için proje kurallarını ve token tasarrufu yönergelerini içerir; `.claude/skills/` yeni kural ve yeni AI sağlayıcısı ekleme tarifleri sunar.
+- Uygulama simgesi koddan üretilir (`scripts/make-icon.sh` → `Resources/AppIcon.icns`); tasarım değişmedikçe yeniden çalıştırmak gerekmez.
 - Silme yalnızca `Safety` geçidinden geçer; bu kuralı bozan değişiklik kabul edilmez.
 
 ## Sınırlar ve yol haritası
+
+**Bugünkü sınırlar**
 - Yalnızca **ev dizinini** tarar (harici diskler ve sistem alanı kapsam dışı).
-- **v2:** Finder benzeri manuel gezgin + AI önerileri; "bunu gereksiz say" diyip saklama ve akıllı moda dahil etme.
-- **v3:** Docker/Podman kullanılmayan imajlar, öğrenme hafızası, Application Support derin analizi.
-- Dağıtım: Developer ID imzası ve notarization henüz yapılmadı (betik hazır, hesap gerekir). `.dmg`/Homebrew cask planlanabilir. Uygulama simgesi henüz yok.
+- Toplu "AI ile iyileştir" tek istekte en büyük 40 belirsiz öğeyi değerlendirir.
 - Hard link'ler boyutta iki kez sayılabilir.
+- Ad-hoc imza: uygulama yalnızca derlendiği Mac'te çalışır; her yeniden derlemede Tam Disk Erişimi tekrar istenebilir.
+- Uygulama arayüzü şimdilik Türkçe.
+
+**Yol haritası** (öncelik sırasına göre, tamamlanınca işaretlenir)
+
+*v2 — Manuel mod*
+- [ ] Finder benzeri manuel gezgin: klasörleri boyutlarıyla gez, her öğede "AI'a sor".
+- [ ] "Bu klasör gereksiz" diye işaretleyip saklama ve sonraki akıllı taramalara dahil etme.
+- [ ] Büyük öğe taramasında sonuçları klasör bittikçe akıtma (kısmi sonuç gösterimi).
+- [ ] Kazanılan alan geçmişi (ne zaman, ne kadar temizlendi).
+
+*v3 — Daha derin analiz*
+- [ ] Docker/Podman: kullanılmayan imaj, kapsayıcı ve volume tespiti (kendi CLI'ları üzerinden).
+- [ ] Öğrenme hafızası: senin "sakla/sil" kararlarından öğrenip önerileri kişiselleştirme (yalnızca yerelde).
+- [ ] `Application Support` derin analizi (uygulama bazlı kalıntılar, kaldırılmış uygulamaların artıkları).
+- [ ] Time Machine yerel anlık görüntüleri ve Mail ek önbelleği için bilgi kartları.
+
+*Kalite ve sertleştirme*
+- [ ] Kural taramalarını Swift eşzamanlılığına tam uyumlu hale getirme (`Rule` protokolünü `async` yapma).
+- [ ] Çöp Kutusu'na taşıma öncesi yolu çözümleyip yeniden doğrulama (kontrol–eylem aralığını kapatma).
+- [ ] İptal edilen taramanın hemen ardından yeniden taramaya izin verme.
+- [ ] Toplu AI isteğini 40'tan fazla öğe için sıralı gruplara bölme.
+- [ ] Harici disk ve başka birimleri tarama (isteğe bağlı, açık onayla).
+
+*Dağıtım*
+- [ ] Developer ID imzası ve notarization (`scripts/make-app.sh` hazır, hesap gerekir).
+- [ ] `.dmg` ve Homebrew cask.
+- [ ] GitHub Actions ile derleme ve test (macOS 26 runner gerekir).
+- [ ] İngilizce arayüz (yerelleştirme).
 
 ## SSS
 **Dosyalarımı AI görüyor mu?** Hayır. Dosya içeriği hiçbir zaman okunmaz. AI açıksa yalnızca gizlenmiş yol, boyut ve yaş gider, ve her seferinde önce sen onaylarsın.

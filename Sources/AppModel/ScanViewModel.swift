@@ -20,6 +20,8 @@ public final class ScanViewModel {
     /// Son AI isteği başarısızsa nedeni; başarılıysa nil.
     public private(set) var aiError: String?
     public private(set) var isLargeScanning = false
+    /// Büyük öğe taraması en az bir kez tamamlandı mı (boş sonuç ile "hiç taranmadı"yı ayırmak için).
+    public private(set) var largeScanned = false
     public private(set) var categoryScanning: FindingCategory?
     private(set) var scanTask: Task<Void, Never>?
     private(set) var largeTask: Task<Void, Never>?
@@ -63,15 +65,27 @@ public final class ScanViewModel {
 
     // MARK: Türetilmiş durum
 
+    /// Akıllı tarama (kategoriler) ve büyük öğeler ayrı kapsamlardır; toplamlar, seçim ve temizlik kapsam başınadır.
+    public enum Scope: Sendable { case smart, large }
+
+    public var smartFindings: [Finding] { findings.filter { $0.category != .large } }
+    public var largeFindings: [Finding] { findings.filter { $0.category == .large } }
+
     public var grouped: [(category: FindingCategory, items: [Finding])] {
         FindingCategory.allCases.compactMap { c in
-            let items = findings.filter { $0.category == c }
+            let items = smartFindings.filter { $0.category == c }
             return items.isEmpty ? nil : (category: c, items: items)
         }
     }
-    public var selectedFindings: [Finding] { findings.filter { selected.contains($0.id) } }
+    public var selectedFindings: [Finding] { smartFindings.filter { selected.contains($0.id) } }
+    public var selectedLargeFindings: [Finding] { largeFindings.filter { selected.contains($0.id) } }
     public var selectedBytes: Int64 { selectedFindings.reduce(0) { $0 + $1.size } }
-    public var totalBytes: Int64 { findings.reduce(0) { $0 + $1.size } }
+    public var selectedLargeBytes: Int64 { selectedLargeFindings.reduce(0) { $0 + $1.size } }
+    public var totalBytes: Int64 { smartFindings.reduce(0) { $0 + $1.size } }
+    public var largeBytes: Int64 { largeFindings.reduce(0) { $0 + $1.size } }
+
+    private func scoped(_ scope: Scope) -> [Finding] { scope == .smart ? smartFindings : largeFindings }
+    private func selected(in scope: Scope) -> [Finding] { scope == .smart ? selectedFindings : selectedLargeFindings }
 
     // MARK: Akış
 
@@ -166,20 +180,20 @@ public final class ScanViewModel {
         findings = RuleEngine.reconcileLarge(others + result.filter { $0.category == .large }, threshold: largeThresholdBytes)
             .sorted { $0.size > $1.size }
         selected.formIntersection(Set(findings.map(\.id)))
-        if phase == .idle { phase = .ready }
+        largeScanned = true
     }
 
     /// AI düğmesinin neden kapalı olduğu; kullanılabilirse nil.
     public var aiUnavailableReason: String? { aiUnavailableReason(single: false) }
 
     /// `single`: tek öğe sorulurken aday filtresi aranmaz.
-    public func aiUnavailableReason(single: Bool) -> String? {
+    public func aiUnavailableReason(single: Bool, scope: Scope = .smart) -> String? {
         if settings.profiles.isEmpty { return "Tanımlı AI profili yok. Ayarlar → AI bölümünden bir profil ekleyip API key'ini gir." }
         if !settings.aiEnabled { return "AI desteği kapalı. Ayarlar → AI'dan aç ya da bağlantı testini başarıyla çalıştır." }
         if settings.activeProfile == nil { return "Aktif AI profili seçilmemiş. Ayarlar → AI → Aktif profil'den seç." }
         if single { return nil }
-        if findings.isEmpty { return "Önce bir tarama yap; AI taranan öğeleri değerlendirir." }
-        if AIScorer.candidates(from: findings).isEmpty { return "AI'ın değerlendireceği belirsiz öğe yok; hepsi kural tarafından biliniyor. Tek bir öğe için kartındaki \"AI'a sor\"u kullanabilirsin." }
+        if scoped(scope).isEmpty { return "Önce bir tarama yap; AI taranan öğeleri değerlendirir." }
+        if AIScorer.candidates(from: scoped(scope)).isEmpty { return "AI'ın değerlendireceği belirsiz öğe yok; hepsi kural tarafından biliniyor. Tek bir öğe için kartındaki \"AI'a sor\"u kullanabilirsin." }
         return nil
     }
 
@@ -189,9 +203,9 @@ public final class ScanViewModel {
         return AIPrompt(findings: [finding], home: home)
     }
 
-    public func aiPrompt() -> AIPrompt? {
+    public func aiPrompt(in scope: Scope = .smart) -> AIPrompt? {
         guard settings.aiEnabled, settings.activeProfile != nil else { return nil }
-        let candidates = AIScorer.candidates(from: findings)
+        let candidates = AIScorer.candidates(from: scoped(scope))
         return candidates.isEmpty ? nil : AIPrompt(findings: candidates, home: home)
     }
 
@@ -213,13 +227,13 @@ public final class ScanViewModel {
         }
     }
 
-    public func dryRun() -> DryRun {
-        Cleaner(gate: SafetyGate(home: home), trasher: trasher).preview(selectedFindings)
+    public func dryRun(scope: Scope = .smart) -> DryRun {
+        Cleaner(gate: SafetyGate(home: home), trasher: trasher).preview(selected(in: scope))
     }
 
-    public func clean() async {
+    public func clean(scope: Scope = .smart) async {
         phase = .cleaning
-        let r = await Cleaner(gate: SafetyGate(home: home), trasher: trasher).clean(selectedFindings)
+        let r = await Cleaner(gate: SafetyGate(home: home), trasher: trasher).clean(selected(in: scope))
         report = r
         let gone = Set(r.trashed.map(\.id))
         trashLog += gone
